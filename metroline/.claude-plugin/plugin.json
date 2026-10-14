@@ -1,0 +1,23 @@
+{
+  "name": "metroline",
+  "displayName": "Metroline",
+  "version": "0.2.0",
+  "description": "Subway-map view of your projects across parallel Claude Code sessions: one line per project, one station per stage, and which project is waiting for you.",
+  "author": { "name": "Erin" },
+  "license": "MIT",
+  "keywords": ["progress", "sessions", "tasks", "dashboard", "parallel"],
+  "userConfig": {
+    "capture_prompts": {
+      "type": "boolean",
+      "title": "Record request previews",
+      "description": "Store the first 80 characters of each request (secrets masked) so a project without a plan shows what you last asked. Turn off to store no request text at all.",
+      "default": true
+    },
+    "plan_reminder": {
+      "type": "boolean",
+      "title": "Suggest a plan at session start",
+      "description": "When a session starts in a project without METROLINE.md, show a one-line note suggesting /metroline:plan. Shown to you only, never to Claude.",
+      "default": true
+    }
+  }
+}

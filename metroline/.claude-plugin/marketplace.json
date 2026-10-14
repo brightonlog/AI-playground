@@ -1,0 +1,14 @@
+{
+  "name": "metroline-marketplace",
+  "description": "Metroline: a subway-map view of your projects across Claude Code sessions.",
+  "owner": {
+    "name": "Erin"
+  },
+  "plugins": [
+    {
+      "name": "metroline",
+      "source": "./",
+      "description": "One subway line per project, one station per stage."
+    }
+  ]
+}
