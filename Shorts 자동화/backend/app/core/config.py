@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     sentence_min_sec: float = 1.5
     sentence_max_sec: float = 15.0
 
+    llm_timeout_sec: float = 120
+    llm_max_retries: int = 2
+    llm_max_tokens: int = 16000
+    llm_description_max_chars: int = 1500
+    keyword_base_strength: float = 0.2
+    keyword_recommend_strength: float = 0.6
+    # Share of the analyzing stage spent on LLM extraction; the rest is scoring.
+    analyze_extract_share: float = 0.7
+
     waveform_peaks_per_sec: int = 10
     waveform_sample_rate: int = 8000
 

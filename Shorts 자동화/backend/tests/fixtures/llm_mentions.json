@@ -1,0 +1,7 @@
+{"mentions": [
+  {"sentence_id": "s1", "product": "톤업 선크림", "brand": "라운드랩", "category": "선크림", "recommend_strength": 0.5, "usage": false},
+  {"sentence_id": "s2", "product": "톤업 선크림", "brand": "라운드랩", "category": "선크림", "recommend_strength": 1.4, "usage": true},
+  {"sentence_id": "s2", "product": "중복", "brand": null, "category": "x", "recommend_strength": 0.1, "usage": false},
+  {"sentence_id": "s99", "product": "없는 문장", "brand": "", "category": "x", "recommend_strength": 0.1, "usage": false},
+  {"sentence_id": "s3", "product": "  ", "brand": "", "category": "립밤", "recommend_strength": 0.3, "usage": false}
+]}

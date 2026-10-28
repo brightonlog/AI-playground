@@ -208,3 +208,27 @@ def test_tag_only_captions_fall_back_to_whisper(client, _isolate):
     analysis_id = create(client).json()["id"]
     run_analysis(analysis_id)
     assert client.get(f"/api/v1/analyses/{analysis_id}").json()["transcript_source"] == "whisper"
+
+
+@needs_ffmpeg
+def test_pipeline_writes_mentions(client, _isolate):
+    from app.storage import local
+
+    analysis_id = create(client).json()["id"]
+    run_analysis(analysis_id)
+    mentions = local.read_json(local.analysis_dir(analysis_id) / "mentions.json")
+    assert mentions["source"] == "llm"
+    assert len(mentions["mentions"]) == 2
+
+
+@needs_ffmpeg
+def test_pipeline_llm_failure_warns(client, _isolate):
+    from app.llm.client import LLMError
+
+    source, _ = _isolate
+    source.llm.error = LLMError("down")
+    analysis_id = create(client).json()["id"]
+    run_analysis(analysis_id)
+    body = client.get(f"/api/v1/analyses/{analysis_id}").json()
+    assert body["status"] == "ready"
+    assert body["warnings"] == ["llm_fallback"]

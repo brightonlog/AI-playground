@@ -6,6 +6,8 @@ from pathlib import Path
 
 # Point DATA_DIR at a temp dir before app modules read settings.
 os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="shorts-test-")
+# Env beats .env: tests must never reach the real API, even if a key is configured.
+os.environ["ANTHROPIC_API_KEY"] = ""
 
 import json  # noqa: E402
 
@@ -15,6 +17,8 @@ from sqlalchemy import delete  # noqa: E402
 
 from app.db.models import Analysis, Base  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
+from app.llm import client as llm  # noqa: E402
+from app.recommend.extract import MentionList  # noqa: E402
 from app.services import events  # noqa: E402
 from app.sources import youtube  # noqa: E402
 from app.transcript import whisper  # noqa: E402
@@ -78,6 +82,22 @@ class FakeTranscriber:
         return self.tokens
 
 
+class FakeLLM:
+    """Replays a recorded LLM response; set `error` to simulate a failed call."""
+
+    def __init__(self) -> None:
+        self.response = json.loads((FIXTURES / "llm_mentions.json").read_text("utf-8"))
+        self.error: Exception | None = None
+        self.calls: list[str] = []
+
+    def parse(self, system, user, schema):
+        self.calls.append(user)
+        if self.error:
+            raise self.error
+        assert schema is MentionList
+        return schema.model_validate(self.response)
+
+
 class _NoRedis:
     """Async Redis stand-in that is always down, so SSE falls back to polling."""
 
@@ -110,6 +130,9 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None):
     transcriber = FakeTranscriber()
     source.transcriber = transcriber  # type: ignore[attr-defined]
     monkeypatch.setattr(whisper, "get_transcriber", lambda: transcriber)
+    fake_llm = FakeLLM()
+    source.llm = fake_llm  # type: ignore[attr-defined]
+    monkeypatch.setattr(llm, "get_llm", lambda: fake_llm)
     monkeypatch.setattr(events, "publish", lambda *a, **k: None)
     monkeypatch.setattr(events, "set_progress", lambda *a, **k: None)
     monkeypatch.setattr(events, "get_progress", lambda *a, **k: None)

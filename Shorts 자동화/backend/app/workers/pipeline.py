@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.errors import JobError
 from app.db.models import Analysis, utcnow
 from app.media.waveform import build_waveform
+from app.recommend.extract import extract_mentions
 from app.services import events
 from app.sources import youtube
 from app.storage import local
@@ -87,6 +88,19 @@ def _transcribe(audio_path: Path, transcript_path: Path, progress: Progress) -> 
     progress.update("transcribing", 1.0)
 
 
+def _analyze(db: Session, analysis: Analysis, progress: Progress, workdir: Path) -> None:
+    mentions_path = workdir / "mentions.json"
+    if not mentions_path.exists():
+        sentences = local.read_json(workdir / "transcript.json")["sentences"]
+        mentions = extract_mentions(local.read_json(workdir / "meta.json"), sentences)
+        local.write_json(mentions_path, mentions)
+        if mentions["source"] == "keywords" and "llm_fallback" not in analysis.warnings:
+            analysis.warnings = [*analysis.warnings, "llm_fallback"]
+            db.commit()
+    progress.update("analyzing", get_settings().analyze_extract_share)
+    # M2-b: candidates, signals, scoring, recommendations.
+
+
 def run_pipeline(db: Session, analysis: Analysis) -> None:
     workdir = local.analysis_dir(analysis.id)
     progress = Progress(analysis)
@@ -101,7 +115,7 @@ def run_pipeline(db: Session, analysis: Analysis) -> None:
     analysis.transcript_source = local.read_json(transcript_path)["source"]
 
     _enter(db, analysis, progress, "analyzing")
-    # M2: product extraction and recommendations.
+    _analyze(db, analysis, progress, workdir)
 
     analysis.status = "ready"
     analysis.finished_at = utcnow()
