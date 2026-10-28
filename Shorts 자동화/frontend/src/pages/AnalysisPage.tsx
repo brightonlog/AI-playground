@@ -1,8 +1,15 @@
 import { useParams } from "react-router";
 
-import AnalysisProgress from "../components/AnalysisProgress";
+import JobProgress from "../components/JobProgress";
 import ScenePicker from "../components/ScenePicker";
-import { useAnalysis } from "../hooks/useAnalysis";
+import { useJob } from "../hooks/useJob";
+
+const STAGES: Record<string, string> = {
+  queued: "차례를 기다리는 중",
+  fetching: "영상 정보·자막·오디오를 받는 중",
+  transcribing: "자막이 없어 직접 받아쓰는 중",
+  analyzing: "제품 소개 구간을 찾는 중",
+};
 
 const WARNINGS: Record<string, string> = {
   auto_captions: "자동 생성 자막이라 대사가 정확하지 않을 수 있어요.",
@@ -12,7 +19,7 @@ const WARNINGS: Record<string, string> = {
 
 export default function AnalysisPage() {
   const { id = "" } = useParams();
-  const { analysis, live, error, retry } = useAnalysis(id);
+  const { job: analysis, live, error, retry } = useJob("analyses", id);
 
   if (error) return <p className="text-red-600">{error}</p>;
   if (!analysis) return <p className="text-zinc-500">불러오는 중…</p>;
@@ -29,7 +36,14 @@ export default function AnalysisPage() {
       {analysis.status === "ready" ? (
         <ScenePicker analysis={analysis} />
       ) : (
-        <AnalysisProgress analysis={analysis} live={live} onRetry={retry} />
+        <JobProgress
+          job={analysis}
+          live={live}
+          stages={STAGES}
+          failTitle="분석에 실패했어요"
+          hint="자막이 있는 영상은 보통 1분 안에 끝나요."
+          onRetry={retry}
+        />
       )}
     </section>
   );

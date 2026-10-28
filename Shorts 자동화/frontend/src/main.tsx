@@ -5,6 +5,7 @@ import { BrowserRouter, Link, Route, Routes } from "react-router";
 import "./index.css";
 import AnalysisPage from "./pages/AnalysisPage";
 import LinkPage from "./pages/LinkPage";
+import ShortPage from "./pages/ShortPage";
 import TemplatePage from "./pages/TemplatePage";
 
 createRoot(document.getElementById("root")!).render(
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<TemplatePage />} />
           <Route path="/new" element={<LinkPage />} />
           <Route path="/analyses/:id" element={<AnalysisPage />} />
+          <Route path="/shorts/:id" element={<ShortPage />} />
         </Routes>
       </main>
     </BrowserRouter>

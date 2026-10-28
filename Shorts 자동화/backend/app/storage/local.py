@@ -8,17 +8,25 @@ from app.core.config import get_settings
 from app.core.ids import is_valid_id
 
 
-def analysis_dir(analysis_id: str) -> Path:
+def _job_dir(job_id: str, prefix: str, folder: str) -> Path:
     # Ids come from the DB, but check anyway so a bad value can never escape data_dir.
-    if not is_valid_id(analysis_id) or not analysis_id.startswith("an_"):
-        raise ValueError("invalid analysis id")
-    path = get_settings().data_dir / "analyses" / analysis_id
+    if not is_valid_id(job_id) or not job_id.startswith(prefix):
+        raise ValueError(f"invalid {folder} id")
+    path = get_settings().data_dir / folder / job_id
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def remove_analysis_dir(analysis_id: str) -> None:
-    shutil.rmtree(analysis_dir(analysis_id), ignore_errors=True)
+def analysis_dir(analysis_id: str) -> Path:
+    return _job_dir(analysis_id, "an_", "analyses")
+
+
+def short_dir(short_id: str) -> Path:
+    return _job_dir(short_id, "sh_", "shorts")
+
+
+def remove_dir(path: Path) -> None:
+    shutil.rmtree(path, ignore_errors=True)
 
 
 def write_json(path: Path, data: Any) -> None:

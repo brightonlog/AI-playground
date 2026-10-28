@@ -16,36 +16,11 @@ from app.sources import youtube
 from app.storage import local
 from app.transcript import whisper
 from app.transcript.sentences import group_sentences, tokens_from_json3
+from app.workers.jobs import Progress, Weights, enter_stage
 
 
-def stage_start(mode: str, stage: str | None) -> float:
-    """Overall progress at the start of `stage` (sum of earlier stage weights)."""
-    done = 0.0
-    for name, weight in get_settings().analysis_stage_weights[mode].items():
-        if name == stage:
-            break
-        done += weight
-    return done
-
-
-class Progress:
-    def __init__(self, analysis: Analysis) -> None:
-        self.analysis = analysis
-        self.last = -1.0
-
-    def update(self, stage: str, fraction: float) -> None:
-        mode = self.analysis.progress_weight_mode
-        weight = get_settings().analysis_stage_weights[mode].get(stage, 0.0)
-        overall = stage_start(mode, stage) + weight * fraction
-        if overall - self.last >= get_settings().progress_min_step or fraction >= 1:
-            self.last = overall
-            events.set_progress("analyses", self.analysis.id, stage, overall)
-
-
-def _enter(db: Session, analysis: Analysis, progress: Progress, stage: str) -> None:
-    analysis.status = analysis.stage = stage
-    db.commit()
-    progress.update(stage, 0.0)
+def analysis_weights(analysis: Analysis) -> Weights:
+    return get_settings().analysis_stage_weights[analysis.progress_weight_mode]
 
 
 def _fetch_captions(db: Session, analysis: Analysis, transcript_path: Path) -> None:
@@ -114,18 +89,18 @@ def _analyze(db: Session, analysis: Analysis, progress: Progress, workdir: Path)
 
 def run_pipeline(db: Session, analysis: Analysis) -> None:
     workdir = local.analysis_dir(analysis.id)
-    progress = Progress(analysis)
+    progress = Progress("analyses", analysis.id, lambda: analysis_weights(analysis))
 
-    _enter(db, analysis, progress, "fetching")
+    enter_stage(db, analysis, progress, "fetching")
     _fetch(db, analysis, progress, workdir)
 
     transcript_path = workdir / "transcript.json"
     if not transcript_path.exists():
-        _enter(db, analysis, progress, "transcribing")
+        enter_stage(db, analysis, progress, "transcribing")
         _transcribe(workdir / "audio.m4a", transcript_path, progress)
     analysis.transcript_source = local.read_json(transcript_path)["source"]
 
-    _enter(db, analysis, progress, "analyzing")
+    enter_stage(db, analysis, progress, "analyzing")
     _analyze(db, analysis, progress, workdir)
 
     analysis.status = "ready"

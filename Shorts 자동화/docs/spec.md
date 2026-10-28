@@ -23,7 +23,7 @@
 
 - transcribing은 유튜브 ko 자막이 없을 때만
 - 출력(done) 후 편집하면 editing으로 돌아감
-- 동시 진행 작업 최대 2개 (분석+쇼츠 합산)
+- 동시 진행 작업 최대 2개 (분석+쇼츠 합산). 쇼츠 editing은 사용자 대기라 세지 않음 (queued·downloading·preparing·rendering만)
 - 재시도는 실패 단계부터, 최대 3회. 단계 산출물 파일이 있으면 건너뛰는 방식 (파일은 임시 파일 → rename으로 완성본만 남김)
 
 ## 3. 파일
@@ -51,7 +51,7 @@
 | 테이블 | 주요 컬럼 |
 |---|---|
 | analyses | id, video_id, url, template_id, status, stage, progress_weight_mode, transcript_source, warnings(json), error_code, error_message, retry_count, source(json), created_at, finished_at |
-| shorts | id, analysis_id, template_id, status, start_sec, end_sec, section_offset_sec, edit_version, preview_version, preview_status, warnings(json), error_code, retry_count, exported_at |
+| shorts | id, analysis_id, template_id, status, stage, start_sec, end_sec, section_offset_sec, edit_version, preview_version, preview_status, warnings(json), error_code, error_message, retry_count, created_at, exported_at |
 | selection_logs | id, analysis_id(nullable), short_id(nullable), video_id, recommended(json: rank·구간·점수·신호), chosen_start_sec, chosen_end_sec, recommendation_rank, scorer_version, created_at |
 | feedback | short_id(unique, nullable), video_id, range(json), signals(json), scorer_version, kept, views, link_clicks, orders, updated_at |
 
@@ -172,7 +172,7 @@
 | PUT | /shorts/{id}/feedback | `{kept, views, link_clicks, orders}` | 409, 422 |
 | GET | /scorers | 2단계 | - |
 
-- SSE 페이로드: `progress {stage, progress}` · `done {status}` · `failed {error, detail}`. 연결 직후 현재 상태를 먼저 보내고, done·failed 후 닫는다. 조용한 구간에는 heartbeat로 현재 상태를 다시 보낸다 (Redis가 없어도 DB 폴링으로 동작)
+- SSE 페이로드: `progress {stage, progress}` · `done {status}` · `failed {error, detail}`. 쇼츠는 초안이 준비되면(editing) `done {status: editing}` 연결 직후 현재 상태를 먼저 보내고, done·failed 후 닫는다. 조용한 구간에는 heartbeat로 현재 상태를 다시 보낸다 (Redis가 없어도 DB 폴링으로 동작)
 
 요청·응답 예시 전문은 노션 API 명세서 각 페이지.
 

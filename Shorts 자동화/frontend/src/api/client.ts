@@ -3,6 +3,7 @@ import createClient from "openapi-fetch";
 import type { components, paths } from "./schema";
 
 export type Analysis = components["schemas"]["AnalysisOut"];
+export type Short = components["schemas"]["ShortOut"];
 export type Template = components["schemas"]["Template"];
 export type Recommendation = components["schemas"]["Recommendation"];
 export type Sentence = components["schemas"]["Sentence"];

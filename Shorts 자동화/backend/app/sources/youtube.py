@@ -80,6 +80,10 @@ class VideoSource(Protocol):
 
     def download_audio(self, url: str, dest: Path, on_progress: ProgressFn) -> None: ...
 
+    def download_section(
+        self, url: str, start_sec: float, end_sec: float, dest: Path, on_progress: ProgressFn
+    ) -> None: ...
+
 
 def _opts(**extra: Any) -> dict[str, Any]:
     return {
@@ -163,30 +167,47 @@ class YtDlpSource:
         return None
 
     def download_audio(self, url: str, dest: Path, on_progress: ProgressFn) -> None:
-        tmp_dir = dest.parent / "_audio_tmp"
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+        extra = {
+            "format": "bestaudio[ext=m4a]/bestaudio",
+            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "m4a"}],
+        }
+        _download(url, dest, extra, on_progress, "오디오를 받지 못했습니다")
 
-        def hook(d: dict[str, Any]) -> None:
-            total = d.get("total_bytes") or d.get("total_bytes_estimate")
-            if d.get("status") == "downloading" and total:
-                on_progress(min(d.get("downloaded_bytes", 0) / total, 1.0))
+    def download_section(
+        self, url: str, start_sec: float, end_sec: float, dest: Path, on_progress: ProgressFn
+    ) -> None:
+        h = get_settings().section_max_height
+        extra = {
+            "format": f"bv*[height<={h}]+ba/b[height<={h}]",
+            "download_ranges": yt_dlp.utils.download_range_func(None, [(start_sec, end_sec)]),
+            "force_keyframes_at_cuts": True,  # cut exactly at start_sec, not the prior keyframe
+            "merge_output_format": "mp4",
+        }
+        _download(url, dest, extra, on_progress, "선택 구간 영상을 받지 못했습니다")
 
-        opts = _opts(
-            format="bestaudio[ext=m4a]/bestaudio",
-            outtmpl=str(tmp_dir / "audio.%(ext)s"),
-            postprocessors=[{"key": "FFmpegExtractAudio", "preferredcodec": "m4a"}],
-            progress_hooks=[hook],
-        )
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                ydl.download([url])
-        except yt_dlp.utils.DownloadError as exc:
-            raise JobError("download_failed", "오디오를 받지 못했습니다") from exc
-        if not (tmp_dir / "audio.m4a").exists():
-            raise JobError("download_failed", "오디오를 받지 못했습니다")
-        # Move into place only when complete, so an existing audio.m4a is never partial.
-        os.replace(tmp_dir / "audio.m4a", dest)
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+def _download(
+    url: str, dest: Path, extra: dict[str, Any], on_progress: ProgressFn, error_detail: str
+) -> None:
+    """Download into a temp dir, then move into place: an existing `dest` is never partial."""
+    tmp_dir = dest.parent / f"_{dest.stem}_tmp"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def hook(d: dict[str, Any]) -> None:
+        total = d.get("total_bytes") or d.get("total_bytes_estimate")
+        if d.get("status") == "downloading" and total:
+            on_progress(min(d.get("downloaded_bytes", 0) / total, 1.0))
+
+    opts = _opts(outtmpl=str(tmp_dir / f"{dest.stem}.%(ext)s"), progress_hooks=[hook], **extra)
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
+    except yt_dlp.utils.DownloadError as exc:
+        raise JobError("download_failed", error_detail) from exc
+    if not (tmp_dir / dest.name).exists():
+        raise JobError("download_failed", error_detail)
+    os.replace(tmp_dir / dest.name, dest)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def get_source() -> VideoSource:

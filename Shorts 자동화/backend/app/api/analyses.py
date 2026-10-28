@@ -2,8 +2,8 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Response
 from fastapi.responses import StreamingResponse
-from starlette.concurrency import run_in_threadpool
 
+from app.api.sse import job_events
 from app.core.config import get_settings
 from app.db.session import DbSession
 from app.schemas.analysis import (
@@ -15,7 +15,7 @@ from app.schemas.analysis import (
     TranscriptOut,
     WaveformOut,
 )
-from app.services import analyses, events
+from app.services import analyses
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 _settings = get_settings()
@@ -82,16 +82,7 @@ def retry_analysis(analysis_id: str, db: DbSession) -> AnalysisOut:
 
 @router.get("/{analysis_id}/events")
 async def analysis_events(analysis_id: str) -> StreamingResponse:
-    await run_in_threadpool(analyses.event_snapshot, analysis_id)  # 404 before streaming starts
-
-    async def snapshot() -> tuple[str, dict[str, Any]]:
-        return await run_in_threadpool(analyses.event_snapshot, analysis_id)
-
-    return StreamingResponse(
-        events.stream("analyses", analysis_id, snapshot),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return await job_events("analyses", analysis_id, analyses.event_snapshot)
 
 
 @router.get("/{analysis_id}/recommendations")

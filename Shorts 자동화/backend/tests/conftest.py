@@ -15,7 +15,7 @@ import pytest  # noqa: E402
 import redis  # noqa: E402
 from sqlalchemy import delete  # noqa: E402
 
-from app.db.models import Analysis, Base  # noqa: E402
+from app.db.models import Analysis, Base, SelectionLog, Short  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
 from app.llm import client as llm  # noqa: E402
 from app.recommend.extract import MentionList  # noqa: E402
@@ -23,7 +23,7 @@ from app.services import events  # noqa: E402
 from app.sources import youtube  # noqa: E402
 from app.transcript import whisper  # noqa: E402
 from app.transcript.sentences import Token  # noqa: E402
-from app.workers import analysis_tasks  # noqa: E402
+from app.workers import analysis_tasks, short_tasks  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
@@ -51,8 +51,10 @@ def make_tone(path: Path, seconds: float = 2.0) -> None:
 
 
 class FakeSource:
-    def __init__(self, tone: Path | None) -> None:
-        self.tone = tone
+    def __init__(self, tone: Path | None, clip: Path | None = None) -> None:
+        self.tone, self.clip = tone, clip
+        self.sections: list[tuple[float, float]] = []
+        self.section_error: Exception | None = None
         self.info = youtube.VideoInfo(
             video_id="dQw4w9WgXcQ", title="t", channel="c", duration_sec=600
         )
@@ -70,6 +72,15 @@ class FakeSource:
         assert self.tone is not None, "ffmpeg required"
         on_progress(0.5)
         shutil.copy(self.tone, dest)
+
+    def download_section(self, url, start_sec, end_sec, dest, on_progress) -> None:
+        self.sections.append((start_sec, end_sec))
+        if self.section_error:
+            error, self.section_error = self.section_error, None  # fail once
+            raise error
+        assert self.clip is not None, "ffmpeg required"
+        on_progress(1.0)
+        shutil.copy(self.clip, dest)
 
 
 class FakeTranscriber:
@@ -112,6 +123,22 @@ class _NoRedis:
 
 
 @pytest.fixture(scope="session")
+def clip(tmp_path_factory: pytest.TempPathFactory) -> Path | None:
+    """5-second 640x360 test video with a tone, standing in for a downloaded section."""
+    if not HAS_FFMPEG:
+        return None
+    path = tmp_path_factory.mktemp("media") / "clip.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-y",
+         "-f", "lavfi", "-i", "testsrc=size=640x360:rate=30:duration=5",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=5",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(path)],
+        check=True,
+    )  # fmt: skip
+    return path
+
+
+@pytest.fixture(scope="session")
 def tone(tmp_path_factory: pytest.TempPathFactory) -> Path | None:
     if not HAS_FFMPEG:
         return None
@@ -121,11 +148,12 @@ def tone(tmp_path_factory: pytest.TempPathFactory) -> Path | None:
 
 
 @pytest.fixture(autouse=True)
-def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None):
+def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None, clip: Path | None):
     with SessionLocal() as db:
-        db.execute(delete(Analysis))
+        for model in (SelectionLog, Short, Analysis):
+            db.execute(delete(model))
         db.commit()
-    source = FakeSource(tone)
+    source = FakeSource(tone, clip)
     monkeypatch.setattr(youtube, "get_source", lambda: source)
     transcriber = FakeTranscriber()
     source.transcriber = transcriber  # type: ignore[attr-defined]
@@ -139,6 +167,7 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None):
     monkeypatch.setattr(events.aioredis.Redis, "from_url", lambda *a, **k: _NoRedis())
     queued: list[str] = []
     monkeypatch.setattr(analysis_tasks, "enqueue", queued.append)
+    monkeypatch.setattr(short_tasks, "enqueue", queued.append)
     yield source, queued
 
 

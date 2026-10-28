@@ -88,6 +88,13 @@ class Settings(BaseSettings):
     waveform_peaks_per_sec: int = 10
     waveform_sample_rate: int = 8000
 
+    # Shorts (spec 2, 7).
+    short_stage_weights: dict[str, float] = {"downloading": 0.3, "preparing": 0.7}
+    short_min_sec: float = 15
+    short_max_sec: float = 60
+    section_margin_sec: float = 1.0
+    section_max_height: int = 1080
+
     templates_available: tuple[str, ...] = ("celeb_item",)
     list_default_limit: int = 20
     list_max_limit: int = 100

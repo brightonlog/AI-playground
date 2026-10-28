@@ -154,6 +154,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shorts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Short */
+        post: operations["create_short_api_v1_shorts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shorts/{short_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Short */
+        get: operations["get_short_api_v1_shorts__short_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shorts/{short_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Short */
+        post: operations["retry_short_api_v1_shorts__short_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shorts/{short_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Short Events */
+        get: operations["short_events_api_v1_shorts__short_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -276,6 +344,62 @@ export interface components {
             end_sec: number;
             /** Text */
             text: string;
+        };
+        /** ShortCreate */
+        ShortCreate: {
+            /** Analysis Id */
+            analysis_id: string;
+            /**
+             * Template Id
+             * @default celeb_item
+             */
+            template_id: string;
+            /** Start Sec */
+            start_sec: number;
+            /** End Sec */
+            end_sec: number;
+            /** Recommendation Rank */
+            recommendation_rank?: number | null;
+        };
+        /** ShortOut */
+        ShortOut: {
+            /** Id */
+            id: string;
+            /** Analysis Id */
+            analysis_id: string;
+            /** Template Id */
+            template_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "downloading" | "preparing" | "editing" | "rendering" | "done" | "failed";
+            /** Stage */
+            stage: string | null;
+            /** Progress */
+            progress: number;
+            /** Start Sec */
+            start_sec: number;
+            /** End Sec */
+            end_sec: number;
+            /** Edit Version */
+            edit_version: number;
+            /** Preview Version */
+            preview_version: number;
+            /** Preview Status */
+            preview_status: string;
+            /** Warnings */
+            warnings: string[];
+            error: components["schemas"]["ErrorInfo"] | null;
+            /** Retry Count */
+            retry_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Exported At */
+            exported_at: string | null;
         };
         /** Template */
         Template: {
@@ -648,6 +772,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Template"][];
+                };
+            };
+        };
+    };
+    create_short_api_v1_shorts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShortCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShortOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_short_api_v1_shorts__short_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShortOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_short_api_v1_shorts__short_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShortOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    short_events_api_v1_shorts__short_id__events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

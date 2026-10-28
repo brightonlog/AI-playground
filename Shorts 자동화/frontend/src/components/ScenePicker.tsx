@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 import {
   type Analysis,
@@ -51,6 +52,8 @@ export default function ScenePicker({ analysis }: { analysis: Analysis }) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [focusTime, setFocusTime] = useState(0);
   const [notice, setNotice] = useState("");
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   // Until the user picks something, show the top recommendation.
   const top = data?.recs[0];
@@ -87,13 +90,27 @@ export default function ScenePicker({ analysis }: { analysis: Analysis }) {
     seek(edge === "start" ? start : Math.max(start, end - END_PREVIEW_SEC), true);
   };
 
-  const create = () => {
-    if (!selection) return;
-    const source = selection.rank ? ` (추천 ${selection.rank}번)` : " (직접 선택)";
-    setNotice(
-      `선택: ${formatTime(selection.start)}–${formatTime(selection.end)}${source}. ` +
-        "쇼츠 생성은 다음 단계(M4)에서 연결돼요.",
-    );
+  const create = async () => {
+    if (!selection || creating) return;
+    setCreating(true);
+    setNotice("");
+    try {
+      const short = await unwrap(
+        api.POST("/api/v1/shorts", {
+          body: {
+            analysis_id: analysis.id,
+            template_id: analysis.template_id,
+            start_sec: selection.start,
+            end_sec: selection.end,
+            recommendation_rank: selection.rank,
+          },
+        }),
+      );
+      navigate(`/shorts/${short.id}`);
+    } catch (e) {
+      setNotice((e as Error).message);
+      setCreating(false);
+    }
   };
 
   if (error) return <p className="text-red-600">{error}</p>;
@@ -141,8 +158,9 @@ export default function ScenePicker({ analysis }: { analysis: Analysis }) {
         onNudge={nudge}
         onPlay={() => selection && seek(selection.start, true)}
         onCreate={create}
+        creating={creating}
       />
-      {notice && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">{notice}</p>}
+      {notice && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{notice}</p>}
       <TranscriptList
         sentences={data.sentences}
         selection={selection}

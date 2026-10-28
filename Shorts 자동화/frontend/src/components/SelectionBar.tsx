@@ -9,6 +9,7 @@ type Props = {
   onNudge: (edge: Edge, delta: number) => void;
   onPlay: () => void;
   onCreate: () => void;
+  creating: boolean;
 };
 
 function Nudge({ label, onClick }: { label: string; onClick: () => void }) {
@@ -33,7 +34,7 @@ function EdgeControl({ title, value, onNudge }: { title: string; value: number; 
   );
 }
 
-export default function SelectionBar({ selection, onNudge, onPlay, onCreate }: Props) {
+export default function SelectionBar({ selection, onNudge, onPlay, onCreate, creating }: Props) {
   if (!selection) {
     return (
       <div className="rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-500">
@@ -57,11 +58,11 @@ export default function SelectionBar({ selection, onNudge, onPlay, onCreate }: P
           구간 재생
         </button>
         <button
-          disabled={!valid}
+          disabled={!valid || creating}
           onClick={onCreate}
           className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          이 구간으로 만들기
+          {creating ? "만드는 중…" : "이 구간으로 만들기"}
         </button>
       </div>
     </div>
