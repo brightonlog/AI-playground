@@ -1,6 +1,7 @@
 import { useParams } from "react-router";
 
 import AnalysisProgress from "../components/AnalysisProgress";
+import ScenePicker from "../components/ScenePicker";
 import { useAnalysis } from "../hooks/useAnalysis";
 
 const WARNINGS: Record<string, string> = {
@@ -26,7 +27,7 @@ export default function AnalysisPage() {
         </p>
       ))}
       {analysis.status === "ready" ? (
-        <p className="text-zinc-600">장면 고르기 화면은 다음 단계(M3-b)에서 붙어요.</p>
+        <ScenePicker analysis={analysis} />
       ) : (
         <AnalysisProgress analysis={analysis} live={live} onRetry={retry} />
       )}
