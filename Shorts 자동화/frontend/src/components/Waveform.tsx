@@ -35,6 +35,7 @@ export default function Waveform(props: Props) {
   const playheadRef = useRef<Region | null>(null);
   const addingRef = useRef(false);
   const decodedRef = useRef(false);
+  const draggingRef = useRef(false);
   const view = useRef({ zoom, focusTime });
   // Latest callbacks without re-creating wavesurfer on every render.
   const handlers = useRef({ onSelect: props.onSelect, onSeek: props.onSeek });
@@ -57,14 +58,21 @@ export default function Waveform(props: Props) {
       plugins: [regions],
     });
     ws.on("interaction", (t) => handlers.current.onSeek(t));
+    // While a handle is held, re-renders (the playhead ticks 4x a second) must not reset it.
+    regions.on("region-update", (r) => {
+      if (r.id !== PLAYHEAD_ID) draggingRef.current = true;
+    });
     regions.on("region-updated", (r) => {
-      if (r.id !== PLAYHEAD_ID) handlers.current.onSelect(r.start, r.end);
+      if (r.id === PLAYHEAD_ID) return;
+      draggingRef.current = false;
+      handlers.current.onSelect(r.start, r.end);
     });
     // Drag on empty space to draw a new selection.
     regions.enableDragSelection({ color: SELECTION_COLOR });
     regions.on("region-created", (r) => {
       if (addingRef.current || r.id === PLAYHEAD_ID) return; // created by us
       selectionRef.current?.remove();
+      r.setOptions({ drag: false });
       selectionRef.current = r;
       handlers.current.onSelect(r.start, r.end);
     });
@@ -88,17 +96,21 @@ export default function Waveform(props: Props) {
     return region;
   };
 
+  const start = selection?.start;
+  const end = selection?.end;
   useEffect(() => {
-    if (!regionsRef.current) return;
-    if (!selection) {
-      selectionRef.current?.remove();
+    if (!regionsRef.current || draggingRef.current) return;
+    const region = selectionRef.current;
+    if (start === undefined || end === undefined) {
+      region?.remove();
       selectionRef.current = null;
-    } else if (!selectionRef.current) {
-      selectionRef.current = add({ ...selection, color: SELECTION_COLOR });
-    } else {
-      selectionRef.current.setOptions(selection);
+    } else if (!region) {
+      // Only the two edge handles move it; the body stays put so it can't be nudged by accident.
+      selectionRef.current = add({ start, end, color: SELECTION_COLOR, drag: false, resize: true });
+    } else if (region.start !== start || region.end !== end) {
+      region.setOptions({ start, end });
     }
-  }, [selection]);
+  }, [start, end]);
 
   useEffect(() => {
     if (!regionsRef.current) return;
@@ -119,7 +131,7 @@ export default function Waveform(props: Props) {
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-1 py-2">
-      <div ref={containerRef} />
+      <div ref={containerRef} className="waveform" />
     </div>
   );
 }
