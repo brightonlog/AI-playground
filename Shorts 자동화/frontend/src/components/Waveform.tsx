@@ -20,6 +20,11 @@ const SELECTION_COLOR = "rgba(24, 24, 27, 0.15)";
 const PLAYHEAD_ID = "playhead";
 const FOCUS_LEAD_SEC = 2; // show a little before the focused time
 
+function applyView(ws: WaveSurfer | null, view: { zoom: number; focusTime: number }) {
+  ws?.zoom(view.zoom);
+  ws?.setScrollTime(Math.max(0, view.focusTime - FOCUS_LEAD_SEC));
+}
+
 /** Video waveform (peaks only, no audio) with a draggable selection and a playhead marker. */
 export default function Waveform(props: Props) {
   const { waveform, selection, currentTime, zoom, focusTime } = props;
@@ -29,6 +34,8 @@ export default function Waveform(props: Props) {
   const selectionRef = useRef<Region | null>(null);
   const playheadRef = useRef<Region | null>(null);
   const addingRef = useRef(false);
+  const decodedRef = useRef(false);
+  const view = useRef({ zoom, focusTime });
   // Latest callbacks without re-creating wavesurfer on every render.
   const handlers = useRef({ onSelect: props.onSelect, onSeek: props.onSeek });
   useEffect(() => {
@@ -61,10 +68,15 @@ export default function Waveform(props: Props) {
       selectionRef.current = r;
       handlers.current.onSelect(r.start, r.end);
     });
+    ws.on("decode", () => {
+      decodedRef.current = true;
+      applyView(ws, view.current);
+    });
     wsRef.current = ws;
     regionsRef.current = regions;
     return () => {
       ws.destroy();
+      decodedRef.current = false;
       wsRef.current = regionsRef.current = selectionRef.current = playheadRef.current = null;
     };
   }, [waveform]);
@@ -99,13 +111,11 @@ export default function Waveform(props: Props) {
     }
   }, [currentTime]);
 
+  // zoom() throws until the peaks finish loading ("decode"), so apply view changes only after it.
   useEffect(() => {
-    wsRef.current?.zoom(zoom);
-  }, [zoom]);
-
-  useEffect(() => {
-    wsRef.current?.setScrollTime(Math.max(0, focusTime - FOCUS_LEAD_SEC));
-  }, [focusTime, zoom]);
+    view.current = { zoom, focusTime };
+    if (decodedRef.current) applyView(wsRef.current, view.current);
+  }, [zoom, focusTime]);
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-1 py-2">
