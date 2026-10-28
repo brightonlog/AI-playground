@@ -16,6 +16,8 @@ from app.db.models import Analysis, Base  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
 from app.services import events  # noqa: E402
 from app.sources import youtube  # noqa: E402
+from app.transcript import whisper  # noqa: E402
+from app.transcript.sentences import Token  # noqa: E402
 from app.workers import analysis_tasks  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -65,6 +67,16 @@ class FakeSource:
         shutil.copy(self.tone, dest)
 
 
+class FakeTranscriber:
+    def __init__(self) -> None:
+        self.tokens = [Token(" 이 선크림 진짜 좋아요.", 0.5, 2.0), Token(" 매일 써요.", 2.2, 3.4)]
+
+    def transcribe(self, audio: Path, on_progress: whisper.ProgressFn) -> list[Token]:
+        assert audio.exists()
+        on_progress(1.0)
+        return self.tokens
+
+
 @pytest.fixture(scope="session")
 def tone(tmp_path_factory: pytest.TempPathFactory) -> Path | None:
     if not HAS_FFMPEG:
@@ -81,6 +93,9 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None):
         db.commit()
     source = FakeSource(tone)
     monkeypatch.setattr(youtube, "get_source", lambda: source)
+    transcriber = FakeTranscriber()
+    source.transcriber = transcriber  # type: ignore[attr-defined]
+    monkeypatch.setattr(whisper, "get_transcriber", lambda: transcriber)
     monkeypatch.setattr(events, "publish", lambda *a, **k: None)
     monkeypatch.setattr(events, "set_progress", lambda *a, **k: None)
     monkeypatch.setattr(events, "get_progress", lambda *a, **k: None)

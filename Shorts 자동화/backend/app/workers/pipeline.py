@@ -12,6 +12,7 @@ from app.media.waveform import build_waveform
 from app.services import events
 from app.sources import youtube
 from app.storage import local
+from app.transcript import whisper
 from app.transcript.sentences import group_sentences, tokens_from_json3
 
 
@@ -74,6 +75,17 @@ def _fetch(db: Session, analysis: Analysis, progress: Progress, workdir: Path) -
     progress.update("fetching", 1.0)
 
 
+def _transcribe(audio_path: Path, transcript_path: Path, progress: Progress) -> None:
+    tokens = whisper.get_transcriber().transcribe(
+        audio_path, lambda f: progress.update("transcribing", f)
+    )
+    sentences = group_sentences(tokens)
+    if not sentences:
+        raise JobError("no_speech", "영상에서 말소리를 찾지 못했습니다")
+    local.write_json(transcript_path, {"source": "whisper", "sentences": sentences})
+    progress.update("transcribing", 1.0)
+
+
 def run_pipeline(db: Session, analysis: Analysis) -> None:
     workdir = local.analysis_dir(analysis.id)
     progress = Progress(analysis)
@@ -84,7 +96,7 @@ def run_pipeline(db: Session, analysis: Analysis) -> None:
     transcript_path = workdir / "transcript.json"
     if not transcript_path.exists():
         _enter(db, analysis, progress, "transcribing")
-        raise JobError("no_captions", "자막이 없는 영상은 아직 지원하지 않습니다")
+        _transcribe(workdir / "audio.m4a", transcript_path, progress)
     analysis.transcript_source = local.read_json(transcript_path)["source"]
 
     _enter(db, analysis, progress, "analyzing")

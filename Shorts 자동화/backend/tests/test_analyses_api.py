@@ -102,15 +102,27 @@ def test_pipeline_auto_captions_warns(client, _isolate):
 
 
 @needs_ffmpeg
-def test_pipeline_without_captions_fails_for_now(client, _isolate):
+def test_pipeline_without_captions_uses_whisper(client, _isolate):
     source, _ = _isolate
     source.captions = None
     analysis_id = create(client).json()["id"]
     run_analysis(analysis_id)
     body = client.get(f"/api/v1/analyses/{analysis_id}").json()
-    assert body["status"] == "failed"
-    assert body["stage"] == "transcribing"
-    assert body["error"]["code"] == "no_captions"
+    assert (body["status"], body["transcript_source"]) == ("ready", "whisper")
+    sentences = client.get(f"/api/v1/analyses/{analysis_id}/transcript").json()["sentences"]
+    assert [s["text"] for s in sentences] == ["이 선크림 진짜 좋아요.", "매일 써요."]
+
+
+@needs_ffmpeg
+def test_pipeline_no_speech_fails(client, _isolate):
+    source, _ = _isolate
+    source.captions = None
+    source.transcriber.tokens = []
+    analysis_id = create(client).json()["id"]
+    run_analysis(analysis_id)
+    body = client.get(f"/api/v1/analyses/{analysis_id}").json()
+    assert (body["status"], body["stage"]) == ("failed", "transcribing")
+    assert body["error"]["code"] == "no_speech"
 
 
 def test_pipeline_unexpected_error_hides_message(client, _isolate, monkeypatch):

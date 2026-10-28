@@ -111,7 +111,7 @@ docker-compose.yml  # redis
 ```
 cp .env.example .env
 docker compose up -d redis
-cd backend && uv sync
+cd backend && uv sync --extra cuda   # GPU Whisper (Windows CUDA DLL 포함). GPU 없으면 --extra 빼고 WHISPER_DEVICE=cpu, WHISPER_MODEL=small
 cd backend && uv run alembic upgrade head
 cd backend && uv run uvicorn app.main:app --reload
 cd backend && uv run celery -A app.workers.celery_app worker -l info -P solo   # Windows는 -P solo 필수

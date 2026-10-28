@@ -12,6 +12,13 @@ dependencies = [
     "celery[redis]",
     "redis",
     "yt-dlp>=2026.10.26",
+    "faster-whisper>=1.2.1",
+]
+
+[project.optional-dependencies]
+cuda = [
+    "nvidia-cublas-cu12>=12.9.2.10",
+    "nvidia-cudnn-cu12>=9,<10",
 ]
 
 [dependency-groups]
