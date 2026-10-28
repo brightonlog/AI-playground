@@ -54,3 +54,27 @@ class WaveformOut(BaseModel):
     duration_sec: float
     peaks_per_sec: int
     peaks: list[float]
+
+
+class Product(BaseModel):
+    product: str
+    brand: str | None
+    category: str
+
+
+class Recommendation(BaseModel):
+    rank: int
+    start_sec: float
+    end_sec: float
+    duration_sec: float
+    score: float
+    signals: dict[str, float]
+    tags: list[str]
+    tag_labels: list[str]
+    products: list[Product]
+    preview: str
+
+
+class RecommendationList(BaseModel):
+    scorer_version: str
+    items: list[Recommendation]

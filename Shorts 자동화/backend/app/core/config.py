@@ -53,6 +53,38 @@ class Settings(BaseSettings):
     # Share of the analyzing stage spent on LLM extraction; the rest is scoring.
     analyze_extract_share: float = 0.7
 
+    # Candidates and scoring (spec 5). Lengths are seconds of the source video.
+    candidate_min_sec: float = 30
+    candidate_max_sec: float = 60
+    candidate_pad_sec: float = 0.2
+    candidate_max_gap_sentences: int = 1
+    candidate_context_sentences: int = 1
+    recommend_top_k: int = 3
+    overlap_iou_max: float = 0.3
+    signal_weights: dict[str, float] = {
+        "product_specific": 0.30,
+        "recommend_strength": 0.25,
+        "usage": 0.15,
+        "density": 0.10,
+        "continuity": 0.10,
+        "length_fit": 0.10,
+    }
+    product_specific_with_brand: float = 1.0
+    product_specific_product_only: float = 0.6
+    usage_ratio_scale: float = 2.0
+    density_full_chars_per_sec: float = 7.0
+    continuity_gap_sec: float = 1.0
+    continuity_mixed_products_factor: float = 0.5
+    length_fit_full: tuple[float, float] = (35, 55)
+    length_fit_edge_score: float = 0.5
+    tag_thresholds: dict[str, float] = {
+        "usage_scene": 0.3,
+        "strong_recommend": 0.7,
+        "dense_speech": 0.7,
+        "continuous": 0.8,
+    }
+    tags_max: int = 2
+
     waveform_peaks_per_sec: int = 10
     waveform_sample_rate: int = 8000
 

@@ -98,7 +98,7 @@ def test_pipeline_auto_captions_warns(client, _isolate):
     analysis_id = create(client).json()["id"]
     run_analysis(analysis_id)
     body = client.get(f"/api/v1/analyses/{analysis_id}").json()
-    assert body["warnings"] == ["auto_captions"]
+    assert "auto_captions" in body["warnings"]
 
 
 @needs_ffmpeg
@@ -231,4 +231,21 @@ def test_pipeline_llm_failure_warns(client, _isolate):
     run_analysis(analysis_id)
     body = client.get(f"/api/v1/analyses/{analysis_id}").json()
     assert body["status"] == "ready"
-    assert body["warnings"] == ["llm_fallback"]
+    assert "llm_fallback" in body["warnings"]
+
+
+def test_recommendations_not_ready(client):
+    analysis_id = create(client).json()["id"]
+    r = client.get(f"/api/v1/analyses/{analysis_id}/recommendations")
+    assert (r.status_code, r.json()["error"]) == (409, "analysis_not_ready")
+
+
+@needs_ffmpeg
+def test_pipeline_recommendations_endpoint(client):
+    analysis_id = create(client).json()["id"]
+    run_analysis(analysis_id)
+    body = client.get(f"/api/v1/analyses/{analysis_id}").json()
+    # The 14s fixture transcript is shorter than the 30s minimum: ready, but nothing to pick.
+    assert body["status"] == "ready" and body["warnings"] == ["no_recommendations"]
+    recs = client.get(f"/api/v1/analyses/{analysis_id}/recommendations").json()
+    assert recs == {"scorer_version": "rules-v1", "items": []}

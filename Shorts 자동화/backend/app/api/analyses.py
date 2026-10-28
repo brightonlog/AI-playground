@@ -11,6 +11,7 @@ from app.schemas.analysis import (
     AnalysisList,
     AnalysisOut,
     AnalysisStatus,
+    RecommendationList,
     TranscriptOut,
     WaveformOut,
 )
@@ -91,3 +92,8 @@ async def analysis_events(analysis_id: str) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/{analysis_id}/recommendations")
+def get_recommendations(analysis_id: str, db: DbSession) -> RecommendationList:
+    return RecommendationList(**analyses.get_recommendations(db, analysis_id))

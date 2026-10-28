@@ -10,6 +10,7 @@ from app.core.errors import JobError
 from app.db.models import Analysis, utcnow
 from app.media.waveform import build_waveform
 from app.recommend.extract import extract_mentions
+from app.recommend.rank import recommend
 from app.services import events
 from app.sources import youtube
 from app.storage import local
@@ -98,7 +99,17 @@ def _analyze(db: Session, analysis: Analysis, progress: Progress, workdir: Path)
             analysis.warnings = [*analysis.warnings, "llm_fallback"]
             db.commit()
     progress.update("analyzing", get_settings().analyze_extract_share)
-    # M2-b: candidates, signals, scoring, recommendations.
+    recommendations_path = workdir / "recommendations.json"
+    if not recommendations_path.exists():
+        sentences = local.read_json(workdir / "transcript.json")["sentences"]
+        mentions = local.read_json(mentions_path)["mentions"]
+        duration = local.read_json(workdir / "meta.json")["duration_sec"]
+        signals_doc, recommendations = recommend(sentences, mentions, duration)
+        local.write_json(workdir / "signals.json", signals_doc)
+        local.write_json(recommendations_path, recommendations)
+        if not recommendations["items"] and "no_recommendations" not in analysis.warnings:
+            analysis.warnings = [*analysis.warnings, "no_recommendations"]
+            db.commit()
 
 
 def run_pipeline(db: Session, analysis: Analysis) -> None:

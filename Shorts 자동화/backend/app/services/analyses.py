@@ -205,3 +205,10 @@ def retry_analysis(db: Session, analysis_id: str) -> Analysis:
     db.commit()
     _enqueue_or_fail(db, analysis)
     return analysis
+
+
+def get_recommendations(db: Session, analysis_id: str) -> Any:
+    analysis = get_or_404(db, analysis_id)
+    if analysis.status != "ready":
+        raise AppError(409, "analysis_not_ready", "분석이 끝난 뒤 추천을 볼 수 있습니다")
+    return read_artifact(db, analysis_id, "recommendations.json", "analysis_not_ready")

@@ -93,7 +93,14 @@
 | dense_speech | 대사가 촘촘합니다 | density ≥ 0.7 |
 | continuous | 끊김 없이 이어집니다 | continuity ≥ 0.8 |
 
-- 구간당 최대 2개, 신호 초과량이 큰 순
+- 구간당 최대 2개, 신호 초과량이 큰 순. brand_mention의 초과량은 product_specific − 0.6
+
+### 5.4 산출물
+
+- `mentions.json`: `{source: llm|keywords, model, mentions: [{sentence_id, product, brand, category, recommend_strength, usage}]}`. 제품 없는 문장은 넣지 않는다. LLM 실패 시 키워드 규칙 + 경고 `llm_fallback`
+- `signals.json`: `{scorer_version, candidates: [{id, start_sec, end_sec, product_key, signals, score, selected_rank}]}` (모든 후보)
+- `recommendations.json`: `{scorer_version, items: [{rank, start_sec, end_sec, duration_sec, score, signals, tags, tag_labels, products, preview}]}`. 후보가 없으면 빈 목록 + 경고 `no_recommendations`
+- 같은 제품 판단: 공백 제거·소문자로 비교 ("립 밤" = "립밤")
 
 ## 6. edit.json
 
