@@ -40,9 +40,9 @@
 | 렌더 | ffmpeg (시스템 설치), ASS 자막 |
 | LLM | anthropic SDK, 모델은 `LLM_MODEL` 환경변수 (기본 `claude-haiku-5-5`) |
 | TTS | `TTSProvider` 인터페이스. 제공자 미정, `FakeTTS`로 먼저 완성 |
-| 프론트 | Next.js (App Router) + TypeScript, Tailwind, wavesurfer.js, YouTube IFrame API |
-| API 타입 | FastAPI OpenAPI → `openapi-typescript`로 프론트 타입 생성 |
-| 패키지 | 백엔드 `uv`, 프론트 `pnpm` |
+| 프론트 | Vite + React + TypeScript (SPA, react-router), Tailwind, wavesurfer.js, YouTube IFrame API. 개발 서버가 `/api`를 백엔드로 프록시 |
+| API 타입 | FastAPI OpenAPI → `openapi-typescript`로 프론트 타입 생성 (`corepack pnpm gen:api`), 호출은 `openapi-fetch` |
+| 패키지 | 백엔드 `uv`, 프론트 `pnpm` (`corepack pnpm`으로 실행, 버전은 package.json `packageManager`) |
 | 품질 | ruff, mypy(strict 아님), pytest / eslint, tsc |
 
 ## 폴더 구조
@@ -117,7 +117,10 @@ cd backend && uv run uvicorn app.main:app --reload
 cd backend && uv run celery -A app.workers.celery_app worker -l info -P solo   # Windows는 -P solo 필수
 cd backend && uv run pytest
 cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app
-cd frontend && pnpm dev
+cd frontend && corepack pnpm install
+cd frontend && corepack pnpm dev        # http://localhost:5173
+cd frontend && corepack pnpm gen:api    # 백엔드 API를 바꾸면 타입 재생성
+cd frontend && corepack pnpm lint       # eslint + tsc
 ```
 
 - 헬스 체크: `GET http://127.0.0.1:8000/api/v1/health` → `{"status":"ok","db":true,"redis":true}` (Redis 끊기면 `degraded`)

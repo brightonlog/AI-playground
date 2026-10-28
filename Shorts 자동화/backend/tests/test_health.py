@@ -11,3 +11,12 @@ def test_health_ok(monkeypatch, client):
 def test_health_degraded_without_redis(monkeypatch, client):
     monkeypatch.setattr(health_api, "redis_ok", lambda: False)
     assert client.get("/api/v1/health").json()["status"] == "degraded"
+
+
+def test_templates(client):
+    templates = client.get("/api/v1/templates").json()
+    assert [(t["id"], t["available"]) for t in templates] == [
+        ("celeb_item", True),
+        ("top3", False),
+        ("story", False),
+    ]
