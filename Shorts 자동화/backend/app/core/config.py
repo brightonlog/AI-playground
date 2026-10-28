@@ -23,6 +23,31 @@ class Settings(BaseSettings):
     max_source_sec: int = 7200
 
     health_check_timeout_sec: float = 0.5
+    source_timeout_sec: float = 10
+    task_visibility_timeout_sec: int = 6 * 3600
+    progress_ttl_sec: int = 86400
+    progress_min_step: float = 0.01
+
+    # Stage weights for overall progress (spec 2). Mode "captions" skips transcribing.
+    analysis_stage_weights: dict[str, dict[str, float]] = {
+        "captions": {"fetching": 0.4, "analyzing": 0.6},
+        "whisper": {"fetching": 0.2, "transcribing": 0.5, "analyzing": 0.3},
+    }
+    # Share of the fetching stage spent downloading audio; the rest is waveform.
+    fetch_audio_share: float = 0.9
+
+    # Sentence building from caption tokens.
+    captions_min_hangul_ratio: float = 0.3
+    sentence_gap_sec: float = 1.0
+    sentence_min_sec: float = 1.5
+    sentence_max_sec: float = 15.0
+
+    waveform_peaks_per_sec: int = 10
+    waveform_sample_rate: int = 8000
+
+    templates_available: tuple[str, ...] = ("celeb_item",)
+    list_default_limit: int = 20
+    list_max_limit: int = 100
 
     @property
     def database_url(self) -> str:

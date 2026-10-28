@@ -39,3 +39,12 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _unhandled(_: Request, __: Exception) -> JSONResponse:
         # Never echo exception text: it may contain paths or secrets.
         return error_response(500, "internal_error", "서버 내부 오류")
+
+
+class JobError(Exception):
+    """Expected failure from an external step. `detail` is shown to the user as-is."""
+
+    def __init__(self, code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.code = code
+        self.detail = detail

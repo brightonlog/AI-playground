@@ -1,0 +1,6 @@
+{"events": [
+  {"tStartMs": 0, "dDurationMs": 5000, "wWinId": 1, "segs": [{"utf8": "오늘은"}, {"utf8": " 선크림", "tOffsetMs": 600}, {"utf8": " 소개할게요", "tOffsetMs": 1400}]},
+  {"tStartMs": 2500, "dDurationMs": 4000, "wWinId": 1, "aAppend": 1, "segs": [{"utf8": "\n"}]},
+  {"tStartMs": 2500, "dDurationMs": 4500, "wWinId": 1, "segs": [{"utf8": "이거"}, {"utf8": " 안", "tOffsetMs": 500}, {"utf8": " 끈적여요", "tOffsetMs": 900}]},
+  {"tStartMs": 7000, "dDurationMs": 2000, "wWinId": 1, "segs": [{"utf8": "그리고"}, {"utf8": " 향도", "tOffsetMs": 400}, {"utf8": " 좋고", "tOffsetMs": 800}]}
+]}

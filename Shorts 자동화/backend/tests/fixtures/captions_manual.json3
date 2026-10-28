@@ -1,0 +1,7 @@
+{"events": [
+  {"tStartMs": 0, "dDurationMs": 1200, "segs": [{"utf8": "[음악]"}]},
+  {"tStartMs": 1500, "dDurationMs": 2000, "segs": [{"utf8": "오늘은 제가 요즘 쓰는"}]},
+  {"tStartMs": 3500, "dDurationMs": 2500, "segs": [{"utf8": "선크림을 소개할게요."}]},
+  {"tStartMs": 6000, "dDurationMs": 3000, "segs": [{"utf8": "이거 진짜 안 끈적여요!"}]},
+  {"tStartMs": 12000, "dDurationMs": 2000, "segs": [{"utf8": "다음은 립밤"}]}
+]}

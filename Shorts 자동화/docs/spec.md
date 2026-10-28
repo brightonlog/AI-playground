@@ -24,7 +24,7 @@
 - transcribing은 유튜브 ko 자막이 없을 때만
 - 출력(done) 후 편집하면 editing으로 돌아감
 - 동시 진행 작업 최대 2개 (분석+쇼츠 합산)
-- 재시도는 실패 단계부터, 최대 3회
+- 재시도는 실패 단계부터, 최대 3회. 단계 산출물 파일이 있으면 건너뛰는 방식 (파일은 임시 파일 → rename으로 완성본만 남김)
 
 ## 3. 파일
 
@@ -32,7 +32,7 @@
 |---|---|---|
 | `data/analyses/{id}/meta.json` | fetching | yt-dlp 영상 정보 일부 |
 | `data/analyses/{id}/audio.m4a` | fetching | 오디오 (파형·Whisper·신호) |
-| `data/analyses/{id}/transcript.json` | fetching / transcribing | 문장 단위 대사, source |
+| `data/analyses/{id}/transcript.json` | fetching / transcribing | `{source: manual|auto|whisper, sentences: [{id, start_sec, end_sec, text}]}` |
 | `data/analyses/{id}/waveform.json` | fetching | 초당 10개 피크 |
 | `data/analyses/{id}/mentions.json` | analyzing | LLM 제품 언급 추출 결과 |
 | `data/analyses/{id}/signals.json` | analyzing | 후보 구간별 신호값 (학습 피처) |
@@ -172,7 +172,7 @@
 | 이름 | 방식 | 호출 위치 | 비고 |
 |---|---|---|---|
 | 영상 정보 | 비공식 도구 (yt-dlp `extract_info(download=False)`) | 분석 생성 | 10초 타임아웃 |
-| 자막 | 비공식 도구 (yt-dlp, ko, json3) | fetching | 수동 우선, 자동은 겹침 제거 |
+| 자막 | 비공식 도구 (yt-dlp, ko, json3) | fetching | 수동 우선, 자동은 겹침 제거. 한글 비율 30% 미만 트랙은 건너뜀 (언어 표기 오류) |
 | 오디오 | 비공식 도구 (yt-dlp bestaudio) | fetching | 항상 받음 |
 | 구간 다운로드 | 비공식 도구 (yt-dlp `--download-sections`, `--force-keyframes-at-cuts`) | 쇼츠 downloading | 1080p 이하 |
 | 제품 언급 추출 | 공식 API (Claude) | analyzing | 분석당 1회, JSON 강제, 실패 시 키워드 규칙 |
