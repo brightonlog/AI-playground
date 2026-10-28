@@ -1,14 +1,24 @@
 import type { Sentence } from "../api/client";
 
-/** Snap a range to sentence boundaries: start to the nearest sentence start, end to the nearest end. */
-export function snapToSentences(sentences: Sentence[], start: number, end: number) {
-  if (sentences.length === 0) return { start, end };
-  const nearest = (values: number[], t: number) =>
-    values.reduce((best, v) => (Math.abs(v - t) < Math.abs(best - t) ? v : best));
-  const snappedStart = nearest(
-    sentences.map((s) => s.start_sec),
-    start,
-  );
-  const ends = sentences.map((s) => s.end_sec).filter((e) => e > snappedStart);
-  return { start: snappedStart, end: ends.length ? nearest(ends, end) : end };
+function snapTo(t: number, boundaries: number[], tolerance: number): number {
+  let best = t;
+  let bestDiff = Infinity;
+  for (const b of boundaries) {
+    const diff = Math.abs(b - t);
+    if (diff <= tolerance && diff < bestDiff) {
+      best = b;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
+
+/**
+ * Pull each edge onto a sentence boundary only when it lands within `tolerance` seconds of one
+ * (start to sentence starts, end to sentence ends); otherwise keep it where it was dropped.
+ */
+export function snapToSentences(sentences: Sentence[], start: number, end: number, tolerance: number) {
+  const s = snapTo(start, sentences.map((x) => x.start_sec), tolerance);
+  const e = snapTo(end, sentences.map((x) => x.end_sec), tolerance);
+  return e > s ? { start: s, end: e } : { start, end };
 }
