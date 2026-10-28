@@ -48,10 +48,11 @@ def _enter(db: Session, analysis: Analysis, progress: Progress, stage: str) -> N
 
 def _fetch_captions(db: Session, analysis: Analysis, transcript_path: Path) -> None:
     captions = youtube.get_source().fetch_captions(analysis.url)
-    if captions is None:
+    sentences = group_sentences(tokens_from_json3(captions.json3)) if captions else []
+    if captions is None or not sentences:
+        # No track, or one with only tags like [음악]: let Whisper listen instead.
         analysis.progress_weight_mode = "whisper"
     else:
-        sentences = group_sentences(tokens_from_json3(captions.json3))
         local.write_json(transcript_path, {"source": captions.kind, "sentences": sentences})
         analysis.progress_weight_mode = "captions"
         if captions.kind == "auto" and "auto_captions" not in analysis.warnings:

@@ -10,6 +10,7 @@ os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="shorts-test-")
 import json  # noqa: E402
 
 import pytest  # noqa: E402
+import redis  # noqa: E402
 from sqlalchemy import delete  # noqa: E402
 
 from app.db.models import Analysis, Base  # noqa: E402
@@ -77,6 +78,19 @@ class FakeTranscriber:
         return self.tokens
 
 
+class _NoRedis:
+    """Async Redis stand-in that is always down, so SSE falls back to polling."""
+
+    def pubsub(self):
+        return self
+
+    async def subscribe(self, *_):
+        raise redis.ConnectionError("no redis in tests")
+
+    async def aclose(self):
+        pass
+
+
 @pytest.fixture(scope="session")
 def tone(tmp_path_factory: pytest.TempPathFactory) -> Path | None:
     if not HAS_FFMPEG:
@@ -99,6 +113,7 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None):
     monkeypatch.setattr(events, "publish", lambda *a, **k: None)
     monkeypatch.setattr(events, "set_progress", lambda *a, **k: None)
     monkeypatch.setattr(events, "get_progress", lambda *a, **k: None)
+    monkeypatch.setattr(events.aioredis.Redis, "from_url", lambda *a, **k: _NoRedis())
     queued: list[str] = []
     monkeypatch.setattr(analysis_tasks, "enqueue", queued.append)
     yield source, queued

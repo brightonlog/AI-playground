@@ -1,6 +1,8 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Response
+from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
 from app.db.session import DbSession
@@ -12,7 +14,7 @@ from app.schemas.analysis import (
     TranscriptOut,
     WaveformOut,
 )
-from app.services import analyses
+from app.services import analyses, events
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 _settings = get_settings()
@@ -70,3 +72,22 @@ def get_transcript(
 def get_waveform(analysis_id: str, db: DbSession) -> WaveformOut:
     data = analyses.read_artifact(db, analysis_id, "waveform.json", "waveform_not_ready")
     return WaveformOut(**data)
+
+
+@router.post("/{analysis_id}/retry", status_code=202)
+def retry_analysis(analysis_id: str, db: DbSession) -> AnalysisOut:
+    return analyses.to_out(analyses.retry_analysis(db, analysis_id))
+
+
+@router.get("/{analysis_id}/events")
+async def analysis_events(analysis_id: str) -> StreamingResponse:
+    await run_in_threadpool(analyses.event_snapshot, analysis_id)  # 404 before streaming starts
+
+    async def snapshot() -> tuple[str, dict[str, Any]]:
+        return await run_in_threadpool(analyses.event_snapshot, analysis_id)
+
+    return StreamingResponse(
+        events.stream("analyses", analysis_id, snapshot),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

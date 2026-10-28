@@ -4,6 +4,7 @@ No cookie, login or DRM options on purpose: restricted videos are rejected, neve
 """
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -18,6 +19,8 @@ import yt_dlp
 from app.core.config import get_settings
 from app.core.errors import JobError
 from app.transcript.captions import hangul_ratio
+
+log = logging.getLogger(__name__)
 
 _HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
 _PATH_PREFIXES = {"shorts", "live", "embed"}
@@ -150,8 +153,10 @@ class YtDlpSource:
             try:
                 with yt_dlp.YoutubeDL(_opts()) as ydl:
                     data = json.loads(ydl.urlopen(track_url).read())
-            except Exception as exc:
-                raise JobError("captions_failed", "자막을 받지 못했습니다") from exc
+            except Exception:
+                # Captions are optional: Whisper covers a track that fails to download.
+                log.warning("caption download failed (%s), skipping track", kind)
+                continue
             # Uploaders sometimes label other-language tracks as "ko"; skip those.
             if hangul_ratio(data) >= get_settings().captions_min_hangul_ratio:
                 return Captions(kind=kind, json3=data)

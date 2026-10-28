@@ -165,6 +165,8 @@
 | PUT | /shorts/{id}/feedback | `{kept, views, link_clicks, orders}` | 409, 422 |
 | GET | /scorers | 2단계 | - |
 
+- SSE 페이로드: `progress {stage, progress}` · `done {status}` · `failed {error, detail}`. 연결 직후 현재 상태를 먼저 보내고, done·failed 후 닫는다. 조용한 구간에는 heartbeat로 현재 상태를 다시 보낸다 (Redis가 없어도 DB 폴링으로 동작)
+
 요청·응답 예시 전문은 노션 API 명세서 각 페이지.
 
 ## 8. 외부 연동

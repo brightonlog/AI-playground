@@ -183,3 +183,28 @@ def test_list_pagination_and_filter(client, _isolate):
 
     r = client.get("/api/v1/analyses", params={"cursor": "an_zzzzzzzz"})
     assert r.json()["error"] == "invalid_cursor"
+
+
+def test_enqueue_failure_marks_failed(client, monkeypatch):
+    from app.workers import analysis_tasks
+
+    def down(_id):
+        raise ConnectionError("redis down")
+
+    monkeypatch.setattr(analysis_tasks, "enqueue", down)
+    r = create(client)
+    assert (r.status_code, r.json()["error"]) == (503, "queue_unavailable")
+    items = client.get("/api/v1/analyses").json()["items"]
+    assert [a["status"] for a in items] == ["failed"]  # not a stuck "queued" row
+    assert create(client).status_code == 503  # failed rows are not reused
+
+
+@needs_ffmpeg
+def test_tag_only_captions_fall_back_to_whisper(client, _isolate):
+    source, _ = _isolate
+    source.captions.json3 = {
+        "events": [{"tStartMs": 0, "dDurationMs": 5000, "segs": [{"utf8": "[음악]"}]}]
+    }
+    analysis_id = create(client).json()["id"]
+    run_analysis(analysis_id)
+    assert client.get(f"/api/v1/analyses/{analysis_id}").json()["transcript_source"] == "whisper"

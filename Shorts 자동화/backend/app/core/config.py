@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     task_visibility_timeout_sec: int = 6 * 3600
     progress_ttl_sec: int = 86400
     progress_min_step: float = 0.01
+    sse_heartbeat_sec: float = 15
+    max_retries: int = 3
 
     # Stage weights for overall progress (spec 2). Mode "captions" skips transcribing.
     analysis_stage_weights: dict[str, dict[str, float]] = {
