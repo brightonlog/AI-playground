@@ -18,7 +18,7 @@ ProgressFn = Callable[[float], None]
 
 class Transcriber(Protocol):
     def transcribe(
-        self, audio: Path, on_progress: ProgressFn, words: bool = False
+        self, audio: Path, on_progress: ProgressFn, words: bool = False, hints: str = ""
     ) -> list[Token]: ...
 
 
@@ -47,13 +47,20 @@ def _model(name: str, device: str):  # type: ignore[no-untyped-def]
 
 
 class FasterWhisper:
-    def transcribe(self, audio: Path, on_progress: ProgressFn, words: bool = False) -> list[Token]:
-        """Segment tokens, or word tokens (leading space kept) when `words` is set."""
+    def transcribe(
+        self, audio: Path, on_progress: ProgressFn, words: bool = False, hints: str = ""
+    ) -> list[Token]:
+        """Segment tokens, or word tokens (leading space kept) when `words` is set.
+        `hints` are names the audio likely contains (Whisper hotwords)."""
         s = get_settings()
         try:
             model = _model(s.whisper_model, s.whisper_device)
             segments, info = model.transcribe(
-                str(audio), language="ko", vad_filter=True, word_timestamps=words
+                str(audio),
+                language="ko",
+                vad_filter=True,
+                word_timestamps=words,
+                hotwords=hints or None,
             )
             tokens: list[Token] = []
             for seg in segments:  # lazy generator: decoding happens while iterating

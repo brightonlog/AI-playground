@@ -1,4 +1,4 @@
-"""Short preparing stage: words -> crop -> title, narration, TTS -> edit.json -> preview.
+"""Short preparing: words -> crop -> fixes, title, narration, TTS -> edit.json -> preview.
 
 Each step skips when its output file exists, so a retry resumes at the failed step.
 """
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.errors import JobError
 from app.db.models import Analysis, Short
-from app.generate import copywriter, tts
+from app.generate import copywriter, corrector, tts
 from app.media import crop
 from app.media.probe import duration_sec, video_size
 from app.schemas.edit import EditDoc, NarrationLine, SpeechLine, Style, Title, Word
@@ -51,12 +51,15 @@ def build_lines(words: list[dict[str, Any]], start: float, end: float) -> list[S
     return lines
 
 
-def _words(short: Short, folder: Path, on_progress: whisper.ProgressFn) -> list[dict[str, Any]]:
+def _words(
+    short: Short, folder: Path, products: list[str], on_progress: whisper.ProgressFn
+) -> list[dict[str, Any]]:
     path = folder / "words.json"
     if not path.exists():
         offset = short.section_offset_sec or 0.0
+        hints = " ".join(products)[: get_settings().whisper_hint_max_chars]
         tokens = whisper.get_transcriber().transcribe(
-            folder / "section.mp4", on_progress, words=True
+            folder / "section.mp4", on_progress, words=True, hints=hints
         )
         words = [
             {"text": t.text, "start_sec": round(offset + t.start, 2),
@@ -107,7 +110,9 @@ def _narrations(folder: Path, copy: dict[str, Any]) -> list[NarrationLine]:
     return out
 
 
-def _edit(db: Session, short: Short, analysis: Analysis, folder: Path, words: list) -> None:
+def _edit(
+    db: Session, short: Short, analysis: Analysis, folder: Path, words: list, products: list[str]
+) -> None:
     path = folder / "edit.json"
     if path.exists():
         return
@@ -116,8 +121,10 @@ def _edit(db: Session, short: Short, analysis: Analysis, folder: Path, words: li
         raise JobError(
             "no_speech", "선택한 구간에서 대사를 찾지 못했습니다. 다른 구간을 골라 주세요"
         )
+    transcript = local.read_json(local.analysis_dir(analysis.id) / "transcript.json")
+    used = corrector.correct_lines(lines, transcript, analysis.source, products)
+    log.info("speech-to-text corrected with %s for %s", used, short.id)
     texts = [{"id": x.id, "text": x.text} for x in lines]
-    products = _products(analysis, short.start_sec, short.end_sec)
     copy = copywriter.draft_copy(analysis.source, products, texts)
     if copy is None:
         copy = copywriter.fallback_copy(analysis.source)
@@ -148,8 +155,9 @@ def prepare(db: Session, short: Short, analysis: Analysis, progress: jobs.Progre
         return lambda f: progress.update("preparing", base + share * f)
 
     folder = local.short_dir(short.id)
-    words = _words(short, folder, scaled(0.0, shares["words"]))
+    products = _products(analysis, short.start_sec, short.end_sec)
+    words = _words(short, folder, products, scaled(0.0, shares["words"]))
     _crop(db, short, folder, scaled(crop_from, shares["crop"]))
     progress.update("preparing", copy_from)
-    _edit(db, short, analysis, folder, words)
+    _edit(db, short, analysis, folder, words, products)
     render_tasks.render_preview(db, short, scaled(preview_from, shares["preview"]))

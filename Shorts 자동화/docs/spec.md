@@ -110,7 +110,7 @@
   "title": {"text": "...", "visible": true},
   "lines": [
     {"id": "l1", "kind": "speech", "deleted": false, "text": "...", "display_text": null,
-     "words": [{"id": "w1", "text": "...", "start_sec": 293.4, "end_sec": 294.1,
+     "words": [{"id": "w1", "text": "...", "raw_text": null, "start_sec": 293.4, "end_sec": 294.1,
                 "deleted": false, "trim_gap_after": false, "emphasis": false}]},
     {"id": "n1", "kind": "narration", "text": "...", "anchor_line_id": "l7",
      "audio_path": "narration/n1.mp3", "audio_sec": 2.1, "voice_id": "default"}
@@ -121,11 +121,17 @@
 ```
 
 ### 초안 만들기 (preparing)
-- 순서: 구간 Whisper(단어) → 크롭 → 제목·나레이션(LLM 1회) → TTS → edit.json → 첫 미리보기. 진행률 비중 0.4 / 0.2 / 0.1 / 0.3. 미리보기까지 끝나야 editing
+- 순서: 구간 Whisper(단어) → 크롭 → 받아쓰기 교정 → 제목·나레이션(LLM 1회) → TTS → edit.json → 첫 미리보기. 진행률 비중 0.4 / 0.2 / 0.1 / 0.3. 미리보기까지 끝나야 editing
 - 문장(line): 선택 구간 안(단어 중간 시각 기준) 단어를 자막 문장 규칙으로 묶음. id `l1…`, 단어 id `w1…`. 대사가 없으면 실패 `no_speech`
 - 제목 ≤30자, 나레이션 0~2개·각 ≤40자, anchor는 실제 문장만·문장당 1개. 나레이션은 lines에서 anchor 바로 앞에 둔다
 - LLM 실패 시 원본 영상 제목(30자)·나레이션 없음 + 경고 `llm_fallback`. 얼굴 검출 실패 시 가운데 크롭 + 경고 `crop_fallback`
 - TTS 캐시 키: sha256(제공자, voice_id, 문장). 쇼츠 폴더로 복사
+
+### 받아쓰기 교정
+- Whisper 힌트: 구간에 언급된 제품·브랜드 이름(mentions.json)을 hotwords로 (최대 200자)
+- 분석 자막이 수동(manual)이면: 구간과 겹치는 자막 문장을 공백 빼고 글자 단위로 Whisper 단어에 맞춰 글자만 바꾼다 (시간은 Whisper 그대로). 일치율 0.6 미만이면 포기
+- 그 외(자동 자막·Whisper·맞추기 실패): LLM 1회, 확실한 오인식(고유명사 등)만 `{word_id, text}`로. 단어 합치기·나누기 금지, 20자 이하. 실패하면 교정 없이 진행
+- 바뀐 단어는 `raw_text`에 원래 받아쓰기 결과를 남긴다 (편집기 표시·되돌리기용)
 
 ### 렌더 규칙
 - 유지 구간: 살아 있는 단어 시작 ~ 바로 다음 단어(지운 단어 포함) 시작, 마지막 단어는 끝까지. `trim_gap_after`면 단어 끝 + 0.15초까지. 지운 단어·문장은 통째로 빠진다
@@ -145,6 +151,7 @@
 | delete_line / restore_line | line_id |
 | restore_all | - |
 | set_display_text | line_id, text |
+| set_word_text | word_id, text(1~20자). 시간은 유지, 처음 바꿀 때 `raw_text`에 원문 보관 |
 | split_line | line_id, word_id |
 | set_title | text(≤30), visible |
 | set_narration / add_narration / delete_narration | line_id, text(≤40), anchor_line_id |

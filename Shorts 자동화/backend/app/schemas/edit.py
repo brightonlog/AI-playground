@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class Word(BaseModel):
     id: str
     text: str
+    raw_text: str | None = None  # speech-to-text output before correction
     start_sec: float
     end_sec: float
     deleted: bool = False

@@ -110,6 +110,12 @@ class Settings(BaseSettings):
     narration_max_chars: int = 40
     narration_max_count: int = 2
     default_style_preset: str = "title_pink"
+
+    # Speech-to-text correction (M5-a). Align captions only when this share of Whisper
+    # characters matches; whisper hints are product and brand names.
+    caption_align_min: float = 0.6
+    word_max_chars: int = 20
+    whisper_hint_max_chars: int = 200
     fake_tts_sec_per_char: float = 0.12
     fake_tts_min_sec: float = 0.8
 

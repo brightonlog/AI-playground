@@ -20,6 +20,12 @@ def made_short(client, start=10.0, end=40.0):
     return short_id, local.short_dir(short_id)
 
 
+def test_products_in_range_become_whisper_hints(client, _isolate):
+    source, _ = _isolate
+    made_short(client, 0.5, 30)  # the fixture mentions the sunscreen at 1.5~9s
+    assert source.transcriber.hints == "라운드랩 톤업 선크림"
+
+
 def test_prepare_writes_draft(client):
     short_id, folder = made_short(client)
     body = client.get(f"/api/v1/shorts/{short_id}").json()
@@ -41,7 +47,9 @@ def test_prepare_writes_draft(client):
     assert narration["audio_sec"] > 0 and (folder / "narration" / "n1.mp3").exists()
     assert first["text"] == "이 선크림 진짜 좋아요."
     assert [w["id"] for w in first["words"]] == ["w1", "w2", "w3", "w4"]
-    assert edit["lines"][2]["words"][0]["id"] == "w5"
+    second = edit["lines"][2]  # LLM fix (no manual captions in range), original kept
+    assert (second["text"], second["words"][0]["raw_text"]) == ("매일매일 써요.", "매일")
+    assert second["words"][0]["id"] == "w5"
 
     crop = local.read_json(folder / "crop.json")
     assert (crop["width"], crop["height"], crop["crop_h"]) == (640, 360, 360)

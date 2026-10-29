@@ -18,6 +18,7 @@ from sqlalchemy import delete  # noqa: E402
 from app.db.models import Analysis, Base, SelectionLog, Short  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
 from app.generate.copywriter import DraftCopy  # noqa: E402
+from app.generate.corrector import WordFixList  # noqa: E402
 from app.llm import client as llm  # noqa: E402
 from app.media import crop  # noqa: E402
 from app.recommend.extract import MentionList  # noqa: E402
@@ -93,8 +94,11 @@ class FakeTranscriber:
                       Token(" 좋아요.", 2.6, 3.2), Token(" 매일", 3.8, 4.1),
                       Token(" 써요.", 4.1, 4.5)]  # fmt: skip
 
-    def transcribe(self, audio: Path, on_progress: whisper.ProgressFn, words=False) -> list[Token]:
+    def transcribe(
+        self, audio: Path, on_progress: whisper.ProgressFn, words=False, hints=""
+    ) -> list[Token]:
         assert audio.exists()
+        self.hints = hints
         on_progress(1.0)
         return self.words if words else self.tokens
 
@@ -118,6 +122,7 @@ class FakeLLM:
         self.responses = {
             MentionList: json.loads((FIXTURES / "llm_mentions.json").read_text("utf-8")),
             DraftCopy: json.loads((FIXTURES / "llm_copy.json").read_text("utf-8")),
+            WordFixList: json.loads((FIXTURES / "llm_fixes.json").read_text("utf-8")),
         }
         self.error: Exception | None = None
         self.calls: list[str] = []
