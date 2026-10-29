@@ -153,6 +153,7 @@
 | set_display_text | line_id, text |
 | set_word_text | word_id, text(1~20자). 시간은 유지, 처음 바꿀 때 `raw_text`에 원문 보관 |
 | split_line | line_id, word_id |
+| join_lines | line_id (다음 문장을 이 문장에 합침. 지운 쪽 단어는 지운 채로, 흡수된 문장의 나레이션은 합친 문장 앞으로) |
 | set_title | text(≤30), visible |
 | set_narration / add_narration / delete_narration | line_id, text(≤40), anchor_line_id |
 | apply_suggestions | suggestion_ids |

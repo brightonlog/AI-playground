@@ -459,7 +459,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            op: "delete_line" | "delete_narration" | "restore_line";
+            op: "delete_line" | "delete_narration" | "join_lines" | "restore_line";
             /** Line Id */
             line_id: string;
         };

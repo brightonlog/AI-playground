@@ -29,6 +29,7 @@ function findWord(doc: EditDoc, wordId: string | null) {
 export default function EditorPanel({ doc, duration, busy, error, apply, suggest }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const suggested = new Set(doc.pending_suggestions.flatMap((s) => s.word_ids));
+  const speechIds = doc.lines.filter((x) => x.kind === "speech").map((x) => x.id);
   const tooLong = duration > OUTPUT_MAX_SEC;
   const tooShort = duration < OUTPUT_MIN_SEC;
 
@@ -94,6 +95,8 @@ export default function EditorPanel({ doc, duration, busy, error, apply, suggest
             <SpeechRow
               key={line.id}
               line={line as SpeechLine}
+              prevId={speechIds[speechIds.indexOf(line.id) - 1] ?? null}
+              hasNext={speechIds.indexOf(line.id) < speechIds.length - 1}
               selected={selected}
               suggested={suggested}
               onSelect={setSelected}

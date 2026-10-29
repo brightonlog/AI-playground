@@ -6,6 +6,9 @@ import TextField from "./TextField";
 
 type Props = {
   line: SpeechLine;
+  /** Neighboring speech lines, for moving an edge word across. */
+  prevId: string | null;
+  hasNext: boolean;
   selected: string | null;
   suggested: Set<string>;
   onSelect: (wordId: string | null) => void;
@@ -25,11 +28,24 @@ function chipClass(w: Word, line: SpeechLine, selected: boolean, suggested: bool
   ].join(" ");
 }
 
-function WordTools({ word, line, apply, onEdit }: {
-  word: Word; line: SpeechLine; apply: Props["apply"]; onEdit: () => void;
-}) {  // prettier-ignore
+type ToolProps = Pick<Props, "line" | "prevId" | "hasNext" | "apply"> & { word: Word; onEdit: () => void };
+
+/** Ops that move an edge word to the neighboring line: join both, then split again. */
+function moveOps(word: Word, line: SpeechLine, prevId: string | null): EditOp[] {
+  const index = line.words.findIndex((w) => w.id === word.id);
+  if (index === 0 && prevId) {
+    const after = line.words[1];
+    return after
+      ? [{ op: "join_lines", line_id: prevId }, { op: "split_line", line_id: prevId, word_id: after.id }]
+      : [{ op: "join_lines", line_id: prevId }];
+  }
+  return [{ op: "join_lines", line_id: line.id }, { op: "split_line", line_id: line.id, word_id: word.id }];
+}
+
+function WordTools({ word, line, prevId, hasNext, apply, onEdit }: ToolProps) {
   const btn = "rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50";
   const first = line.words[0]?.id === word.id;
+  const last = line.words[line.words.length - 1]?.id === word.id;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <button
@@ -55,11 +71,21 @@ function WordTools({ word, line, apply, onEdit }: {
           여기서 문장 나누기
         </button>
       )}
+      {first && prevId && (
+        <button className={btn} onClick={() => apply(moveOps(word, line, prevId))}>
+          ↑ 앞 문장으로 보내기
+        </button>
+      )}
+      {last && hasNext && line.words.length > 1 && (
+        <button className={btn} onClick={() => apply(moveOps(word, line, null))}>
+          ↓ 다음 문장으로 보내기
+        </button>
+      )}
     </div>
   );
 }
 
-export default function SpeechRow({ line, selected, suggested, onSelect, apply }: Props) {
+export default function SpeechRow({ line, prevId, hasNext, selected, suggested, onSelect, apply }: Props) {
   const [mode, setMode] = useState<Mode>("none");
   const picked = line.words.find((w) => w.id === selected) ?? null;
   const link = "text-xs text-zinc-500 hover:text-zinc-900 hover:underline";
@@ -97,7 +123,14 @@ export default function SpeechRow({ line, selected, suggested, onSelect, apply }
       )}
       {picked && mode === "none" && (
         <div className="mt-2">
-          <WordTools word={picked} line={line} apply={apply} onEdit={() => setMode("word")} />
+          <WordTools
+            word={picked}
+            line={line}
+            prevId={prevId}
+            hasNext={hasNext}
+            apply={apply}
+            onEdit={() => setMode("word")}
+          />
         </div>
       )}
       {mode === "display" && (

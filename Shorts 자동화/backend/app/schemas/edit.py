@@ -67,7 +67,7 @@ class DeleteWords(BaseModel):
 
 
 class LineOp(BaseModel):
-    op: Literal["delete_line", "restore_line", "delete_narration"]
+    op: Literal["delete_line", "restore_line", "delete_narration", "join_lines"]
     line_id: str
 
 

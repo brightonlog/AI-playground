@@ -86,6 +86,8 @@ class Editor:
             case LineOp(op="delete_narration"):
                 narration = self.narration(op.line_id)
                 self.doc.lines = [x for x in self.doc.lines if x is not narration]
+            case LineOp(op="join_lines"):
+                self._join(self.speech(op.line_id))
             case RestoreAll():
                 for line in self.doc.lines:
                     if isinstance(line, SpeechLine):
@@ -126,6 +128,26 @@ class Editor:
                 except ValueError as exc:
                     raise OpError(str(exc)) from exc
                 self.doc.style.preset_id, self.doc.style.overrides = op.preset_id, overrides
+
+    def _join(self, line: SpeechLine) -> None:
+        """Merge the next speech line into `line`. A deleted side keeps its words deleted, and
+        narrations on the absorbed line move to the merged one."""
+        speech = [x for x in self.doc.lines if isinstance(x, SpeechLine)]
+        index = next(i for i, x in enumerate(speech) if x is line)
+        if index + 1 >= len(speech):
+            raise OpError("마지막 문장은 다음 문장과 합칠 수 없습니다")
+        nxt = speech[index + 1]
+        for part in (line, nxt):
+            for w in part.words:
+                w.deleted = w.deleted or part.deleted
+        line.deleted = line.deleted and nxt.deleted
+        line.words, line.display_text = line.words + nxt.words, None
+        _retext(line)
+        self.doc.lines = [x for x in self.doc.lines if x is not nxt]
+        for x in list(self.doc.lines):
+            if isinstance(x, NarrationLine) and x.anchor_line_id == nxt.id:
+                x.anchor_line_id = line.id
+                self._place_before(x, line.id)
 
     def _split(self, op: SplitLine) -> None:
         line = self.speech(op.line_id)

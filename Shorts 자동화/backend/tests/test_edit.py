@@ -135,3 +135,18 @@ def test_render_stops_when_cancelled(client):
                       s.preview_size, s.preview_crf, lambda f: None,
                       cancelled=lambda: True)  # fmt: skip
     assert (folder / "preview.mp4").stat().st_mtime_ns == before
+
+
+def test_move_first_word_to_previous_line(client):
+    short_id, _ = made_short(client)
+    # What "앞 문장으로 보내기" sends for w5, the first word of l2.
+    ops = [{"op": "join_lines", "line_id": "l1"},
+           {"op": "split_line", "line_id": "l1", "word_id": "w6"}]  # fmt: skip
+    assert patch(client, short_id, ops).status_code == 200
+    lines = edit_of(client, short_id)["edit"]["lines"]
+    speech = [(x["id"], [w["id"] for w in x["words"]]) for x in lines if x["kind"] == "speech"]
+    assert speech == [("l1", ["w1", "w2", "w3", "w4", "w5"]), ("l2", ["w6"])]
+    assert [x["id"] for x in lines] == ["n1", "l1", "l2"]
+
+    r = patch(client, short_id, [{"op": "join_lines", "line_id": "l2"}])
+    assert (r.status_code, r.json()["error"]) == (422, "invalid_op")
