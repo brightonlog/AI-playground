@@ -42,7 +42,7 @@
 | `data/shorts/{id}/crop.json` | preparing | `{width, height, crop_w, crop_h, y, keyframes: [{t, x}]}` 9:16 고정 크기 창을 가로로만 이동. 0.5초 간격 가장 큰 얼굴 중심, 빈 곳은 직전 얼굴 유지, 이동 평균 5개 |
 | `data/shorts/{id}/edit.json` | preparing / 편집 | 편집 상태 (6절) |
 | `data/shorts/{id}/narration/*.mp3` | preparing / 편집 | TTS 결과 (`data/tts_cache/` 해시 캐시 링크) |
-| `data/shorts/{id}/preview.mp4` | 편집 | 540×960 |
+| `data/shorts/{id}/preview.mp4` | preparing / 편집 | 540×960. 같은 폴더에 `subs.ass`·`render.filter`·`render.log` (렌더 중간 파일) |
 | `data/shorts/{id}/final.mp4`, `final.srt`, `thumbnail.jpg` | rendering | 1080×1920 |
 | `data/shorts/{id}/publish_kit.json` | 출력 후 | 업로드 키트 |
 
@@ -121,19 +121,20 @@
 ```
 
 ### 초안 만들기 (preparing)
-- 순서: 구간 Whisper(단어) → 크롭 → 제목·나레이션(LLM 1회) → TTS → edit.json. 진행률 비중 0.5 / 0.3 / 0.2
+- 순서: 구간 Whisper(단어) → 크롭 → 제목·나레이션(LLM 1회) → TTS → edit.json → 첫 미리보기. 진행률 비중 0.4 / 0.2 / 0.1 / 0.3. 미리보기까지 끝나야 editing
 - 문장(line): 선택 구간 안(단어 중간 시각 기준) 단어를 자막 문장 규칙으로 묶음. id `l1…`, 단어 id `w1…`. 대사가 없으면 실패 `no_speech`
 - 제목 ≤30자, 나레이션 0~2개·각 ≤40자, anchor는 실제 문장만·문장당 1개. 나레이션은 lines에서 anchor 바로 앞에 둔다
 - LLM 실패 시 원본 영상 제목(30자)·나레이션 없음 + 경고 `llm_fallback`. 얼굴 검출 실패 시 가운데 크롭 + 경고 `crop_fallback`
 - TTS 캐시 키: sha256(제공자, voice_id, 문장). 쇼츠 폴더로 복사
 
 ### 렌더 규칙
-- 유지 구간: 살아 있는 단어 시작 ~ 다음 살아 있는 단어 시작. `trim_gap_after`면 단어 끝 + 0.15초까지
+- 유지 구간: 살아 있는 단어 시작 ~ 바로 다음 단어(지운 단어 포함) 시작, 마지막 단어는 끝까지. `trim_gap_after`면 단어 끝 + 0.15초까지. 지운 단어·문장은 통째로 빠진다
 - 출력 길이 5~60초, 벗어나면 편집·출력 거부
 - 나레이션: anchor 문장의 출력 시작 시각에 믹싱, 그 동안 원본 음성 20%
 - 크롭: crop.json 키프레임 선형 보간
 - 자막: 문장 단위, 한 줄 최대 16자·최대 2줄, 강조 단어는 프리셋 강조색
-- preview 540×960 veryfast / final 1080×1920 CRF 20 veryfast
+- preview 540×960 veryfast CRF 28 / final 1080×1920 CRF 20 veryfast. 자막 좌표는 1080×1920 기준(ASS PlayRes), 폰트는 `assets/fonts` Pretendard Bold
+- 미리보기 완료 시 `preview_status=ready`, `preview_version=edit.version`, SSE `preview_ready {preview_version}`
 - 미리보기는 편집 후 1초 디바운스, 진행 중이면 취소 후 재시작
 
 ### 편집 연산 (PATCH /edit)

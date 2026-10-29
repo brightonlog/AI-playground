@@ -44,7 +44,7 @@ def run_short_pipeline(db: Session, short: Short) -> None:
     _download(db, short, analysis, progress)
 
     jobs.enter_stage(db, short, progress, "preparing")
-    prepare.prepare(db, short, analysis, progress)  # M4-c adds the preview render
+    prepare.prepare(db, short, analysis, progress)
 
     short.status = "editing"
     db.commit()

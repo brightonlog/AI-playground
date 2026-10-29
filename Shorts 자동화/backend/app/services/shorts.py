@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -140,3 +141,21 @@ def event_snapshot(short_id: str) -> tuple[str, dict[str, Any]]:
         if short.status == "failed":
             return "failed", {"error": short.error_code, "detail": short.error_message}
         return "progress", {"stage": short.stage or "queued", "progress": progress_of(short)}
+
+
+# kind -> (file name in the short's folder, media type)
+FILES = {
+    "preview": ("preview.mp4", "video/mp4"),
+    "video": ("final.mp4", "video/mp4"),
+    "srt": ("final.srt", "application/x-subrip"),
+    "thumbnail": ("thumbnail.jpg", "image/jpeg"),
+}
+
+
+def file_of(db: Session, short_id: str, kind: str) -> tuple[Path, str]:
+    short = get_or_404(db, short_id)
+    name, media_type = FILES[kind]
+    path = local.short_dir(short.id) / name
+    if not path.exists():
+        raise AppError(404, "file_not_found", "아직 만들어지지 않은 파일입니다")
+    return path, media_type

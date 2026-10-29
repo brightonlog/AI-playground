@@ -7,7 +7,7 @@ import { formatTime } from "../lib/time";
 const STAGES: Record<string, string> = {
   queued: "차례를 기다리는 중",
   downloading: "선택한 구간 영상을 받는 중",
-  preparing: "자막·크롭·제목·나레이션을 준비하는 중",
+  preparing: "자막·크롭·제목·나레이션·미리보기를 만드는 중",
 };
 
 const WARNINGS: Record<string, string> = {
@@ -41,9 +41,20 @@ export default function ShortPage() {
         </p>
       ))}
       {ready ? (
-        <p className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-600">
-          초안(자막·크롭·제목·나레이션)을 만들었어요. 미리보기 영상은 다음 단계(M4-c)에서 붙어요.
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          {short.preview_status === "ready" ? (
+            <video
+              key={short.preview_version}
+              src={`/api/v1/shorts/${short.id}/files/preview?v=${short.preview_version}`}
+              controls
+              playsInline
+              className="aspect-[9/16] w-full max-w-[360px] rounded-xl bg-black"
+            />
+          ) : (
+            <p className="text-zinc-500">미리보기를 준비하는 중…</p>
+          )}
+          <p className="text-xs text-zinc-500">미리보기는 저화질(540×960)이에요. 편집은 다음 단계에서 붙어요.</p>
+        </div>
       ) : (
         <JobProgress
           job={short}

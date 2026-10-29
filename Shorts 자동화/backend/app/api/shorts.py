@@ -1,5 +1,7 @@
+from typing import Literal
+
 from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.api.sse import job_events
 from app.db.session import DbSession
@@ -27,3 +29,20 @@ def retry_short(short_id: str, db: DbSession) -> ShortOut:
 @router.get("/{short_id}/events")
 async def short_events(short_id: str) -> StreamingResponse:
     return await job_events("shorts", short_id, shorts.event_snapshot)
+
+
+@router.get("/{short_id}/files/{kind}", response_class=FileResponse)
+def get_file(
+    short_id: str,
+    kind: Literal["preview", "video", "srt", "thumbnail"],
+    db: DbSession,
+    download: bool = False,
+) -> FileResponse:
+    """Range requests are supported (video seeking)."""
+    path, media_type = shorts.file_of(db, short_id, kind)
+    return FileResponse(
+        path,
+        media_type=media_type,
+        filename=f"{short_id}_{path.name}",
+        content_disposition_type="attachment" if download else "inline",
+    )

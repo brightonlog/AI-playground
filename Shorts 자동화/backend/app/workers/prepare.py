@@ -1,4 +1,4 @@
-"""Short preparing stage: section words -> crop -> title, narration, TTS -> edit.json.
+"""Short preparing stage: words -> crop -> title, narration, TTS -> edit.json -> preview.
 
 Each step skips when its output file exists, so a retry resumes at the failed step.
 """
@@ -19,7 +19,7 @@ from app.schemas.edit import EditDoc, NarrationLine, SpeechLine, Style, Title, W
 from app.storage import local
 from app.transcript import whisper
 from app.transcript.sentences import Token, group_tokens, join_text
-from app.workers import jobs
+from app.workers import jobs, render_tasks
 
 log = logging.getLogger(__name__)
 
@@ -141,7 +141,8 @@ def _edit(db: Session, short: Short, analysis: Analysis, folder: Path, words: li
 def prepare(db: Session, short: Short, analysis: Analysis, progress: jobs.Progress) -> None:
     shares = get_settings().prepare_shares
     crop_from = shares["words"]
-    edit_from = crop_from + shares["crop"]
+    copy_from = crop_from + shares["crop"]
+    preview_from = copy_from + shares["copy"]
 
     def scaled(base: float, share: float) -> whisper.ProgressFn:
         return lambda f: progress.update("preparing", base + share * f)
@@ -149,5 +150,6 @@ def prepare(db: Session, short: Short, analysis: Analysis, progress: jobs.Progre
     folder = local.short_dir(short.id)
     words = _words(short, folder, scaled(0.0, shares["words"]))
     _crop(db, short, folder, scaled(crop_from, shares["crop"]))
-    progress.update("preparing", edit_from)
+    progress.update("preparing", copy_from)
     _edit(db, short, analysis, folder, words)
+    render_tasks.render_preview(db, short, scaled(preview_from, shares["preview"]))

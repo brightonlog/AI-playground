@@ -94,8 +94,8 @@ class Settings(BaseSettings):
     short_max_sec: float = 60
     section_margin_sec: float = 1.0
     section_max_height: int = 1080
-    # Share of the preparing stage per step; the rest is title, narration and TTS.
-    prepare_shares: dict[str, float] = {"words": 0.5, "crop": 0.3}
+    # Share of the preparing stage per step ("copy" is title, narration and TTS).
+    prepare_shares: dict[str, float] = {"words": 0.4, "crop": 0.2, "copy": 0.1, "preview": 0.3}
 
     # 9:16 crop (spec 6). Faces are sampled every interval on a downscaled frame.
     crop_aspect: float = 9 / 16
@@ -112,6 +112,18 @@ class Settings(BaseSettings):
     default_style_preset: str = "title_pink"
     fake_tts_sec_per_char: float = 0.12
     fake_tts_min_sec: float = 0.8
+
+    # Render (spec 6 렌더 규칙). Subtitle layout is in final-size pixels; preview scales it.
+    trim_gap_sec: float = 0.15
+    narration_duck_volume: float = 0.2
+    subtitle_line_chars: int = 16
+    subtitle_max_lines: int = 2
+    render_preset: str = "veryfast"
+    preview_size: tuple[int, int] = (540, 960)
+    preview_crf: int = 28
+    final_size: tuple[int, int] = (1080, 1920)
+    final_crf: int = 20
+    fonts_dir: Path = ROOT_DIR / "assets" / "fonts"
 
     templates_available: tuple[str, ...] = ("celeb_item",)
     list_default_limit: int = 20
