@@ -162,6 +162,10 @@
 - editing·done 상태에서만 편집 (그 외 409 `edit_not_ready`). done에서 편집하면 editing으로
 - 나레이션 수정·추가 시 TTS를 바로 만들고 `narration/{id}_{문장 해시 8자}.mp3`로 저장. 저장 후 edit.json이 가리키지 않는 mp3는 지운다
 - set_style overrides는 프리셋에 있는 키만, 색은 `&HAABBGGRR`, 크기·여백은 0~1920 정수, 폰트는 `assets/fonts`에 있는 것만 (ASS 주입 방지)
+- 컷 추천 (`POST /cut-suggestions`): 같은 type의 대기 추천을 새로 바꾸고 version을 올린다 (영상은 그대로라 최신 미리보기는 preview_version만 따라 올림)
+  - silence: 살아 있는 단어 사이 공백 ≥ `min_gap_sec`(기본 0.5, 0.2~5)이고 `trim_gap_after`가 꺼진 단어. 적용하면 그 단어 `trim_gap_after=true`
+  - filler: 문장부호를 뺀 글자가 군말 소리(음·어·아·에·으·흠)로만 된 단어, "그니까·뭐랄까", 같은 단어가 연달아 나오면 앞의 것. 적용하면 단어 삭제
+  - 응답 `{version, suggestions}` (요청한 type만)
 - 저장하면 `preview_status=pending` → 1초 뒤 렌더 작업 (rendering → ready / failed). 렌더 중 새 편집이 저장되면 ffmpeg를 중단하고 최신 편집만 렌더. SSE `preview_ready {preview_version}` · `preview_failed`
 
 ## 7. 내부 API (Base `http://127.0.0.1:8000/api/v1`, 인증 없음)

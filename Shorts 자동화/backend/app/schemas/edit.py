@@ -145,3 +145,20 @@ class EditResult(BaseModel):
     version: int
     duration_sec: float
     preview_status: str
+
+
+class SilenceRequest(BaseModel):
+    type: Literal["silence"]
+    min_gap_sec: float = Field(default=0.5, ge=0.2, le=5)
+
+
+class FillerRequest(BaseModel):
+    type: Literal["filler"]
+
+
+CutRequest = Annotated[SilenceRequest | FillerRequest, Field(discriminator="type")]
+
+
+class CutResult(BaseModel):
+    version: int
+    suggestions: list[Suggestion]

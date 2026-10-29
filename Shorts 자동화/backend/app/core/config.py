@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     output_min_sec: float = 5
     output_max_sec: float = 60
     preview_debounce_sec: float = 1.0
+
+    # Cut suggestions (M5-c). Punctuation is ignored. A word made only of filler sounds
+    # ("음...", "으음", "어어") or one of filler_words counts as a filler.
+    silence_default_gap_sec: float = 0.5
+    filler_sounds: str = "음어아에으흠"
+    filler_words: tuple[str, ...] = ("그니까", "뭐랄까")
     narration_duck_volume: float = 0.2
     subtitle_line_chars: int = 16
     subtitle_max_lines: int = 2

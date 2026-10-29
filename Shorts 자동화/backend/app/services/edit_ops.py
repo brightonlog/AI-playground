@@ -157,6 +157,10 @@ class Editor:
         for sid in op.suggestion_ids:
             if sid not in pending:
                 raise OpError(f"없는 추천입니다: {sid}")
-            for wid in pending.pop(sid).word_ids:
-                self.word(wid).deleted = True
+            suggestion = pending.pop(sid)
+            for wid in suggestion.word_ids:
+                if suggestion.type == "silence":  # cut the pause after the word
+                    self.word(wid).trim_gap_after = True
+                else:
+                    self.word(wid).deleted = True
         self.doc.pending_suggestions = list(pending.values())

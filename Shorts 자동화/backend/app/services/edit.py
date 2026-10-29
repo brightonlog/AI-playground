@@ -10,7 +10,16 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.db.models import Short
 from app.media import timeline
-from app.schemas.edit import EditDoc, EditOut, EditPatch, EditResult, NarrationLine
+from app.schemas.edit import (
+    CutRequest,
+    CutResult,
+    EditDoc,
+    EditOut,
+    EditPatch,
+    EditResult,
+    NarrationLine,
+)
+from app.services import cuts
 from app.services.edit_ops import Editor, OpError
 from app.services.shorts import get_or_404
 from app.storage import local
@@ -89,3 +98,20 @@ def patch_edit(db: Session, short_id: str, body: EditPatch) -> EditResult:
     return EditResult(
         version=new.version, duration_sec=duration, preview_status=short.preview_status
     )
+
+
+def cut_suggestions(db: Session, short_id: str, request: CutRequest) -> CutResult:
+    """Replace pending suggestions of the requested type. The cut itself does not change, so
+    an up-to-date preview stays up to date."""
+    with _patch_lock:
+        short = get_or_404(db, short_id)
+        doc, folder = _load(short)
+        new = cuts.suggest(doc, request.type, cuts.find(doc, request))
+        new.version = doc.version + 1
+        local.write_json(folder / "edit.json", new.model_dump())
+        if short.preview_status == "ready" and short.preview_version == doc.version:
+            short.preview_version = new.version
+        short.edit_version = new.version
+        db.commit()
+    found = [x for x in new.pending_suggestions if x.type == request.type]
+    return CutResult(version=new.version, suggestions=found)
