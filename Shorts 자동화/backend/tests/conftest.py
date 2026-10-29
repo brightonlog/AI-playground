@@ -26,7 +26,7 @@ from app.services import events  # noqa: E402
 from app.sources import youtube  # noqa: E402
 from app.transcript import whisper  # noqa: E402
 from app.transcript.sentences import Token  # noqa: E402
-from app.workers import analysis_tasks, short_tasks  # noqa: E402
+from app.workers import analysis_tasks, render_tasks, short_tasks  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
@@ -196,6 +196,9 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None, clip: Path | No
     queued: list[str] = []
     monkeypatch.setattr(analysis_tasks, "enqueue", queued.append)
     monkeypatch.setattr(short_tasks, "enqueue", queued.append)
+    monkeypatch.setattr(
+        render_tasks, "enqueue_preview", lambda sid: queued.append(f"preview:{sid}")
+    )
     yield source, queued
 
 

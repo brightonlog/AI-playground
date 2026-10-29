@@ -154,6 +154,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/styles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Styles */
+        get: operations["list_styles_api_v1_styles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shorts": {
         parameters: {
             query?: never;
@@ -242,10 +259,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shorts/{short_id}/edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edit */
+        get: operations["get_edit_api_v1_shorts__short_id__edit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Edit */
+        patch: operations["patch_edit_api_v1_shorts__short_id__edit_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddNarration */
+        AddNarration: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "add_narration";
+            /** Text */
+            text: string;
+            /** Anchor Line Id */
+            anchor_line_id: string;
+        };
         /** AnalysisCreate */
         AnalysisCreate: {
             /** Url */
@@ -301,6 +348,67 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /** ApplySuggestions */
+        ApplySuggestions: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "apply_suggestions";
+            /** Suggestion Ids */
+            suggestion_ids: string[];
+        };
+        /** DeleteWords */
+        DeleteWords: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "delete_words" | "restore_words";
+            /** Word Ids */
+            word_ids: string[];
+        };
+        /** EditDoc */
+        EditDoc: {
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+            title: components["schemas"]["Title"];
+            /** Lines */
+            lines: (components["schemas"]["SpeechLine"] | components["schemas"]["NarrationLine"])[];
+            style: components["schemas"]["Style"];
+            /**
+             * Pending Suggestions
+             * @default []
+             */
+            pending_suggestions: components["schemas"]["Suggestion"][];
+        };
+        /** EditOut */
+        EditOut: {
+            edit: components["schemas"]["EditDoc"];
+            /** Duration Sec */
+            duration_sec: number;
+            /** Out Start Sec */
+            out_start_sec: number;
+        };
+        /** EditPatch */
+        EditPatch: {
+            /** Base Version */
+            base_version: number;
+            /** Ops */
+            ops: (components["schemas"]["DeleteWords"] | components["schemas"]["LineOp"] | components["schemas"]["RestoreAll"] | components["schemas"]["SetDisplayText"] | components["schemas"]["SplitLine"] | components["schemas"]["SetWordText"] | components["schemas"]["SetTitle"] | components["schemas"]["SetNarration"] | components["schemas"]["AddNarration"] | components["schemas"]["ApplySuggestions"] | components["schemas"]["SetStyle"])[];
+        };
+        /** EditResult */
+        EditResult: {
+            /** Version */
+            version: number;
+            /** Duration Sec */
+            duration_sec: number;
+            /** Preview Status */
+            preview_status: string;
+        };
         /** ErrorInfo */
         ErrorInfo: {
             /** Code */
@@ -312,6 +420,39 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LineOp */
+        LineOp: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "delete_line" | "delete_narration" | "restore_line";
+            /** Line Id */
+            line_id: string;
+        };
+        /** NarrationLine */
+        NarrationLine: {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "narration";
+            /** Text */
+            text: string;
+            /** Anchor Line Id */
+            anchor_line_id: string;
+            /** Audio Path */
+            audio_path: string;
+            /** Audio Sec */
+            audio_sec: number;
+            /**
+             * Voice Id
+             * @default default
+             */
+            voice_id: string;
         };
         /** Product */
         Product: {
@@ -354,6 +495,14 @@ export interface components {
             /** Items */
             items: components["schemas"]["Recommendation"][];
         };
+        /** RestoreAll */
+        RestoreAll: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "restore_all";
+        };
         /** Sentence */
         Sentence: {
             /** Id */
@@ -362,6 +511,76 @@ export interface components {
             start_sec: number;
             /** End Sec */
             end_sec: number;
+            /** Text */
+            text: string;
+        };
+        /** SetDisplayText */
+        SetDisplayText: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set_display_text";
+            /** Line Id */
+            line_id: string;
+            /** Text */
+            text?: string | null;
+        };
+        /** SetNarration */
+        SetNarration: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set_narration";
+            /** Line Id */
+            line_id: string;
+            /** Text */
+            text: string;
+            /** Anchor Line Id */
+            anchor_line_id?: string | null;
+        };
+        /** SetStyle */
+        SetStyle: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set_style";
+            /** Preset Id */
+            preset_id: string;
+            /**
+             * Overrides
+             * @default {}
+             */
+            overrides: {
+                [key: string]: unknown;
+            };
+        };
+        /** SetTitle */
+        SetTitle: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set_title";
+            /** Text */
+            text: string;
+            /**
+             * Visible
+             * @default true
+             */
+            visible: boolean;
+        };
+        /** SetWordText */
+        SetWordText: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set_word_text";
+            /** Word Id */
+            word_id: string;
             /** Text */
             text: string;
         };
@@ -421,6 +640,71 @@ export interface components {
             /** Exported At */
             exported_at: string | null;
         };
+        /** SpeechLine */
+        SpeechLine: {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "speech";
+            /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /** Text */
+            text: string;
+            /** Display Text */
+            display_text?: string | null;
+            /** Words */
+            words: components["schemas"]["Word"][];
+        };
+        /** SplitLine */
+        SplitLine: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "split_line";
+            /** Line Id */
+            line_id: string;
+            /** Word Id */
+            word_id: string;
+        };
+        /** Style */
+        Style: {
+            /** Preset Id */
+            preset_id: string;
+            /**
+             * Overrides
+             * @default {}
+             */
+            overrides: {
+                [key: string]: unknown;
+            };
+        };
+        /** StylePreset */
+        StylePreset: {
+            /** Id */
+            id: string;
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+        };
+        /** Suggestion */
+        Suggestion: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Word Ids */
+            word_ids: string[];
+            /** Reason */
+            reason: string;
+        };
         /** Template */
         Template: {
             /** Id */
@@ -431,6 +715,16 @@ export interface components {
             description: string;
             /** Available */
             available: boolean;
+        };
+        /** Title */
+        Title: {
+            /** Text */
+            text: string;
+            /**
+             * Visible
+             * @default true
+             */
+            visible: boolean;
         };
         /** TranscriptOut */
         TranscriptOut: {
@@ -460,6 +754,34 @@ export interface components {
             peaks_per_sec: number;
             /** Peaks */
             peaks: number[];
+        };
+        /** Word */
+        Word: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Raw Text */
+            raw_text?: string | null;
+            /** Start Sec */
+            start_sec: number;
+            /** End Sec */
+            end_sec: number;
+            /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /**
+             * Trim Gap After
+             * @default false
+             */
+            trim_gap_after: boolean;
+            /**
+             * Emphasis
+             * @default false
+             */
+            emphasis: boolean;
         };
     };
     responses: never;
@@ -796,6 +1118,26 @@ export interface operations {
             };
         };
     };
+    list_styles_api_v1_styles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StylePreset"][];
+                };
+            };
+        };
+    };
     create_short_api_v1_shorts_post: {
         parameters: {
             query?: never;
@@ -942,6 +1284,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_edit_api_v1_shorts__short_id__edit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_edit_api_v1_shorts__short_id__edit_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResult"];
+                };
             };
             /** @description Validation Error */
             422: {

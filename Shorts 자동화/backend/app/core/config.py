@@ -121,6 +121,9 @@ class Settings(BaseSettings):
 
     # Render (spec 6 렌더 규칙). Subtitle layout is in final-size pixels; preview scales it.
     trim_gap_sec: float = 0.15
+    output_min_sec: float = 5
+    output_max_sec: float = 60
+    preview_debounce_sec: float = 1.0
     narration_duck_volume: float = 0.2
     subtitle_line_chars: int = 16
     subtitle_max_lines: int = 2

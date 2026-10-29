@@ -158,7 +158,11 @@
 | apply_suggestions | suggestion_ids |
 | set_style | preset_id, overrides |
 
-- `base_version` 불일치 409. 전부 검증 후 원자적 적용
+- `base_version` 불일치 409 `version_conflict`. 전부 검증 후 원자적 적용 (하나라도 틀리면 422 `invalid_op`, 아무것도 바뀌지 않음). 적용 후 출력 길이가 5~60초를 벗어나면 422 `invalid_duration`
+- editing·done 상태에서만 편집 (그 외 409 `edit_not_ready`). done에서 편집하면 editing으로
+- 나레이션 수정·추가 시 TTS를 바로 만들고 `narration/{id}_{문장 해시 8자}.mp3`로 저장. 저장 후 edit.json이 가리키지 않는 mp3는 지운다
+- set_style overrides는 프리셋에 있는 키만, 색은 `&HAABBGGRR`, 크기·여백은 0~1920 정수, 폰트는 `assets/fonts`에 있는 것만 (ASS 주입 방지)
+- 저장하면 `preview_status=pending` → 1초 뒤 렌더 작업 (rendering → ready / failed). 렌더 중 새 편집이 저장되면 ffmpeg를 중단하고 최신 편집만 렌더. SSE `preview_ready {preview_version}` · `preview_failed`
 
 ## 7. 내부 API (Base `http://127.0.0.1:8000/api/v1`, 인증 없음)
 
@@ -174,7 +178,7 @@
 | GET | /{analyses\|shorts}/{id}/events | SSE: progress, preview_ready, done, failed | 404 |
 | POST | /{analyses\|shorts}/{id}/retry | 실패 단계부터 | 409 invalid_state·retry_limit |
 | GET | /templates | 템플릿 목록·available | - |
-| GET | /styles | 스타일 프리셋 | - |
+| GET | /styles | 스타일 프리셋 `[{id, values}]` | - |
 | POST | /shorts | `{analysis_id, template_id, start_sec, end_sec, recommendation_rank}` → 202. 15~60초. selection_logs 기록 | 409, 422, 429 |
 | GET | /shorts/{id} | 상태·edit_version·preview_version | 404 |
 | GET | /shorts/{id}/edit | edit.json + duration_sec + out_start_sec | 409 |

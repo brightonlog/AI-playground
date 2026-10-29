@@ -21,6 +21,10 @@ log = logging.getLogger(__name__)
 ProgressFn = Callable[[float], None]
 
 
+class RenderCancelled(Exception):
+    """A newer edit arrived while rendering; the output was not replaced."""
+
+
 def crop_x_expr(crop: dict[str, Any], offset: float) -> str:
     """Crop left edge as an ffmpeg expression of section time `t`, linear between keyframes."""
     pts = [(round(k["t"] - offset, 3), k["x"]) for k in crop["keyframes"]]
@@ -90,8 +94,10 @@ def _filter(
 def render(
     folder: Path, doc: EditDoc, crop: dict[str, Any], offset: float, out_name: str,
     size: tuple[int, int], crf: int, on_progress: ProgressFn,
+    cancelled: Callable[[], bool] = lambda: False,
 ) -> float:  # fmt: skip
-    """Render `folder/out_name` atomically; returns the output duration in seconds."""
+    """Render `folder/out_name` atomically; returns the output duration in seconds.
+    `cancelled` is polled on each ffmpeg progress report (about twice a second)."""
     s = get_settings()
     kept = timeline.kept_words(doc)
     if not kept:
@@ -121,6 +127,10 @@ def render(
         for line in proc.stdout:
             if line.startswith("out_time_us=") and line[12:].strip().isdigit():
                 on_progress(min(int(line[12:]) / 1e6 / duration, 1.0))
+            elif line.startswith("progress=") and cancelled():
+                proc.kill()
+                proc.wait()
+                raise RenderCancelled
     if proc.returncode != 0:
         log.error("render failed: %s", (folder / "render.log").read_text("utf-8", "replace"))
         raise JobError("render_failed", "영상을 만들지 못했습니다")
