@@ -17,7 +17,9 @@ ProgressFn = Callable[[float], None]
 
 
 class Transcriber(Protocol):
-    def transcribe(self, audio: Path, on_progress: ProgressFn) -> list[Token]: ...
+    def transcribe(
+        self, audio: Path, on_progress: ProgressFn, words: bool = False
+    ) -> list[Token]: ...
 
 
 def _add_cuda_dll_dirs() -> None:
@@ -45,14 +47,20 @@ def _model(name: str, device: str):  # type: ignore[no-untyped-def]
 
 
 class FasterWhisper:
-    def transcribe(self, audio: Path, on_progress: ProgressFn) -> list[Token]:
+    def transcribe(self, audio: Path, on_progress: ProgressFn, words: bool = False) -> list[Token]:
+        """Segment tokens, or word tokens (leading space kept) when `words` is set."""
         s = get_settings()
         try:
             model = _model(s.whisper_model, s.whisper_device)
-            segments, info = model.transcribe(str(audio), language="ko", vad_filter=True)
+            segments, info = model.transcribe(
+                str(audio), language="ko", vad_filter=True, word_timestamps=words
+            )
             tokens: list[Token] = []
             for seg in segments:  # lazy generator: decoding happens while iterating
-                tokens.append(Token(" " + seg.text.strip(), seg.start, seg.end))
+                if words:
+                    tokens.extend(Token(w.word, w.start, w.end) for w in seg.words or [])
+                else:
+                    tokens.append(Token(" " + seg.text.strip(), seg.start, seg.end))
                 if info.duration:
                     on_progress(min(seg.end / info.duration, 1.0))
         except Exception as exc:

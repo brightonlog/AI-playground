@@ -17,7 +17,9 @@ from sqlalchemy import delete  # noqa: E402
 
 from app.db.models import Analysis, Base, SelectionLog, Short  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
+from app.generate.copywriter import DraftCopy  # noqa: E402
 from app.llm import client as llm  # noqa: E402
+from app.media import crop  # noqa: E402
 from app.recommend.extract import MentionList  # noqa: E402
 from app.services import events  # noqa: E402
 from app.sources import youtube  # noqa: E402
@@ -86,18 +88,37 @@ class FakeSource:
 class FakeTranscriber:
     def __init__(self) -> None:
         self.tokens = [Token(" 이 선크림 진짜 좋아요.", 0.5, 2.0), Token(" 매일 써요.", 2.2, 3.4)]
+        # Section-relative word times; inside the chosen range for every test short.
+        self.words = [Token(" 이", 1.5, 1.7), Token(" 선크림", 1.7, 2.2), Token(" 진짜", 2.3, 2.6),
+                      Token(" 좋아요.", 2.6, 3.2), Token(" 매일", 3.8, 4.1),
+                      Token(" 써요.", 4.1, 4.5)]  # fmt: skip
 
-    def transcribe(self, audio: Path, on_progress: whisper.ProgressFn) -> list[Token]:
+    def transcribe(self, audio: Path, on_progress: whisper.ProgressFn, words=False) -> list[Token]:
         assert audio.exists()
         on_progress(1.0)
-        return self.tokens
+        return self.words if words else self.tokens
+
+
+class FakeFaces:
+    def __init__(self) -> None:
+        self.centers_out: list[float | None] = [None, 0.8, 0.8, None]
+        self.error: Exception | None = None
+
+    def centers(self, video: Path, on_progress) -> list[float | None]:
+        if self.error:
+            raise self.error
+        on_progress(1.0)
+        return self.centers_out
 
 
 class FakeLLM:
-    """Replays a recorded LLM response; set `error` to simulate a failed call."""
+    """Replays recorded LLM responses per schema; set `error` to simulate a failed call."""
 
     def __init__(self) -> None:
-        self.response = json.loads((FIXTURES / "llm_mentions.json").read_text("utf-8"))
+        self.responses = {
+            MentionList: json.loads((FIXTURES / "llm_mentions.json").read_text("utf-8")),
+            DraftCopy: json.loads((FIXTURES / "llm_copy.json").read_text("utf-8")),
+        }
         self.error: Exception | None = None
         self.calls: list[str] = []
 
@@ -105,8 +126,7 @@ class FakeLLM:
         self.calls.append(user)
         if self.error:
             raise self.error
-        assert schema is MentionList
-        return schema.model_validate(self.response)
+        return schema.model_validate(self.responses[schema])
 
 
 class _NoRedis:
@@ -161,6 +181,9 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, tone: Path | None, clip: Path | No
     fake_llm = FakeLLM()
     source.llm = fake_llm  # type: ignore[attr-defined]
     monkeypatch.setattr(llm, "get_llm", lambda: fake_llm)
+    faces = FakeFaces()
+    source.faces = faces  # type: ignore[attr-defined]
+    monkeypatch.setattr(crop, "get_face_finder", lambda: faces)
     monkeypatch.setattr(events, "publish", lambda *a, **k: None)
     monkeypatch.setattr(events, "set_progress", lambda *a, **k: None)
     monkeypatch.setattr(events, "get_progress", lambda *a, **k: None)

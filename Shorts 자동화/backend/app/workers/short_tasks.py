@@ -12,7 +12,7 @@ from app.db.session import SessionLocal
 from app.services import events
 from app.sources import youtube
 from app.storage import local
-from app.workers import jobs
+from app.workers import jobs, prepare
 from app.workers.celery_app import celery_app
 
 
@@ -44,7 +44,7 @@ def run_short_pipeline(db: Session, short: Short) -> None:
     _download(db, short, analysis, progress)
 
     jobs.enter_stage(db, short, progress, "preparing")
-    # M4-b: section Whisper, crop, title/narration, TTS, edit.json. M4-c: preview render.
+    prepare.prepare(db, short, analysis, progress)  # M4-c adds the preview render
 
     short.status = "editing"
     db.commit()

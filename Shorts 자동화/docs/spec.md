@@ -38,8 +38,8 @@
 | `data/analyses/{id}/signals.json` | analyzing | 후보 구간별 신호값 (학습 피처) |
 | `data/analyses/{id}/recommendations.json` | analyzing | 상위 3개 추천 |
 | `data/shorts/{id}/section.mp4` | downloading | 선택 구간 ±1초 |
-| `data/shorts/{id}/words.json` | preparing | 구간 Whisper 단어 타임스탬프 |
-| `data/shorts/{id}/crop.json` | preparing | 크롭 키프레임 |
+| `data/shorts/{id}/words.json` | preparing | `{source: whisper, words: [{text, start_sec, end_sec}]}` 구간 전체(여유 포함), 원본 기준 초 |
+| `data/shorts/{id}/crop.json` | preparing | `{width, height, crop_w, crop_h, y, keyframes: [{t, x}]}` 9:16 고정 크기 창을 가로로만 이동. 0.5초 간격 가장 큰 얼굴 중심, 빈 곳은 직전 얼굴 유지, 이동 평균 5개 |
 | `data/shorts/{id}/edit.json` | preparing / 편집 | 편집 상태 (6절) |
 | `data/shorts/{id}/narration/*.mp3` | preparing / 편집 | TTS 결과 (`data/tts_cache/` 해시 캐시 링크) |
 | `data/shorts/{id}/preview.mp4` | 편집 | 540×960 |
@@ -119,6 +119,13 @@
   "pending_suggestions": [{"id": "s1", "type": "filler", "word_ids": ["w9"], "reason": "..."}]
 }
 ```
+
+### 초안 만들기 (preparing)
+- 순서: 구간 Whisper(단어) → 크롭 → 제목·나레이션(LLM 1회) → TTS → edit.json. 진행률 비중 0.5 / 0.3 / 0.2
+- 문장(line): 선택 구간 안(단어 중간 시각 기준) 단어를 자막 문장 규칙으로 묶음. id `l1…`, 단어 id `w1…`. 대사가 없으면 실패 `no_speech`
+- 제목 ≤30자, 나레이션 0~2개·각 ≤40자, anchor는 실제 문장만·문장당 1개. 나레이션은 lines에서 anchor 바로 앞에 둔다
+- LLM 실패 시 원본 영상 제목(30자)·나레이션 없음 + 경고 `llm_fallback`. 얼굴 검출 실패 시 가운데 크롭 + 경고 `crop_fallback`
+- TTS 캐시 키: sha256(제공자, voice_id, 문장). 쇼츠 폴더로 복사
 
 ### 렌더 규칙
 - 유지 구간: 살아 있는 단어 시작 ~ 다음 살아 있는 단어 시작. `trim_gap_after`면 단어 끝 + 0.15초까지

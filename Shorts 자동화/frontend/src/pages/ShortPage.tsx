@@ -10,6 +10,11 @@ const STAGES: Record<string, string> = {
   preparing: "자막·크롭·제목·나레이션을 준비하는 중",
 };
 
+const WARNINGS: Record<string, string> = {
+  llm_fallback: "제목·나레이션을 자동으로 만들지 못해 원본 영상 제목을 썼어요.",
+  crop_fallback: "얼굴을 찾지 못해 화면 가운데로 잘랐어요.",
+};
+
 export default function ShortPage() {
   const { id = "" } = useParams();
   const { job: short, live, error, retry } = useJob("shorts", id);
@@ -30,9 +35,14 @@ export default function ShortPage() {
           {(short.end_sec - short.start_sec).toFixed(1)}초
         </p>
       </div>
+      {short.warnings.map((w) => (
+        <p key={w} className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {WARNINGS[w] ?? w}
+        </p>
+      ))}
       {ready ? (
         <p className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-600">
-          구간 영상을 받았어요. 자막·크롭·나레이션과 미리보기는 다음 단계(M4-b·c)에서 붙어요.
+          초안(자막·크롭·제목·나레이션)을 만들었어요. 미리보기 영상은 다음 단계(M4-c)에서 붙어요.
         </p>
       ) : (
         <JobProgress

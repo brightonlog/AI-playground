@@ -43,7 +43,8 @@ class Progress:
 
     def update(self, stage: str, fraction: float) -> None:
         weights = self.weights()
-        overall = stage_start(weights, stage) + weights.get(stage, 0.0) * fraction
+        # float(): Whisper times are numpy floats, whose str() is "np.float64(...)" in Redis.
+        overall = float(stage_start(weights, stage) + weights.get(stage, 0.0) * fraction)
         if overall - self.last >= get_settings().progress_min_step or fraction >= 1:
             self.last = overall
             events.set_progress(self.kind, self.job_id, stage, overall)

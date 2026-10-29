@@ -94,6 +94,24 @@ class Settings(BaseSettings):
     short_max_sec: float = 60
     section_margin_sec: float = 1.0
     section_max_height: int = 1080
+    # Share of the preparing stage per step; the rest is title, narration and TTS.
+    prepare_shares: dict[str, float] = {"words": 0.5, "crop": 0.3}
+
+    # 9:16 crop (spec 6). Faces are sampled every interval on a downscaled frame.
+    crop_aspect: float = 9 / 16
+    crop_sample_sec: float = 0.5
+    crop_detect_width: int = 320
+    crop_min_confidence: float = 0.5
+    crop_smooth_window: int = 5
+    face_model_path: Path = ROOT_DIR / "assets" / "models" / "blaze_face_short_range.tflite"
+
+    # Draft copy (spec 6 edit ops limits).
+    title_max_chars: int = 30
+    narration_max_chars: int = 40
+    narration_max_count: int = 2
+    default_style_preset: str = "title_pink"
+    fake_tts_sec_per_char: float = 0.12
+    fake_tts_min_sec: float = 0.8
 
     templates_available: tuple[str, ...] = ("celeb_item",)
     list_default_limit: int = 20
