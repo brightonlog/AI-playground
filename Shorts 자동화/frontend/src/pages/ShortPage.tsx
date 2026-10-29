@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
 
+import ShortEditor from "../components/editor/ShortEditor";
 import JobProgress from "../components/JobProgress";
 import { useJob } from "../hooks/useJob";
 import { formatTime } from "../lib/time";
@@ -29,7 +30,7 @@ export default function ShortPage() {
         <Link to={`/analyses/${short.analysis_id}`} className="text-sm text-zinc-500 hover:underline">
           ← 장면 다시 고르기
         </Link>
-        <h1 className="mt-1 text-xl font-bold">쇼츠 초안</h1>
+        <h1 className="mt-1 text-xl font-bold">쇼츠 편집</h1>
         <p className="text-sm text-zinc-500 tabular-nums">
           원본 {formatTime(short.start_sec)}–{formatTime(short.end_sec)} ·{" "}
           {(short.end_sec - short.start_sec).toFixed(1)}초
@@ -41,20 +42,7 @@ export default function ShortPage() {
         </p>
       ))}
       {ready ? (
-        <div className="flex flex-col items-center gap-3">
-          {short.preview_status === "ready" ? (
-            <video
-              key={short.preview_version}
-              src={`/api/v1/shorts/${short.id}/files/preview?v=${short.preview_version}`}
-              controls
-              playsInline
-              className="aspect-[9/16] w-full max-w-[360px] rounded-xl bg-black"
-            />
-          ) : (
-            <p className="text-zinc-500">미리보기를 준비하는 중…</p>
-          )}
-          <p className="text-xs text-zinc-500">미리보기는 저화질(540×960)이에요. 편집은 다음 단계에서 붙어요.</p>
-        </div>
+        <ShortEditor initial={short} />
       ) : (
         <JobProgress
           job={short}

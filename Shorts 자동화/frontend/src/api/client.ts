@@ -30,3 +30,10 @@ export async function unwrap<T>(request: Promise<Result<T>>): Promise<T> {
   const detail = typeof body.detail === "string" ? body.detail : `요청 실패 (${response.status})`;
   throw new ApiError(body.error ?? "http_error", detail);
 }
+
+export type EditDoc = components["schemas"]["EditDoc"];
+export type SpeechLine = components["schemas"]["SpeechLine"];
+export type NarrationLine = components["schemas"]["NarrationLine"];
+export type Word = components["schemas"]["Word"];
+export type Suggestion = components["schemas"]["Suggestion"];
+export type EditOp = components["schemas"]["EditPatch"]["ops"][number];

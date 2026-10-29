@@ -277,6 +277,23 @@ export interface paths {
         patch: operations["patch_edit_api_v1_shorts__short_id__edit_patch"];
         trace?: never;
     };
+    "/api/v1/shorts/{short_id}/cut-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cut Suggestions */
+        post: operations["cut_suggestions_api_v1_shorts__short_id__cut_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -358,6 +375,13 @@ export interface components {
             /** Suggestion Ids */
             suggestion_ids: string[];
         };
+        /** CutResult */
+        CutResult: {
+            /** Version */
+            version: number;
+            /** Suggestions */
+            suggestions: components["schemas"]["Suggestion"][];
+        };
         /** DeleteWords */
         DeleteWords: {
             /**
@@ -415,6 +439,14 @@ export interface components {
             code: string;
             /** Message */
             message: string;
+        };
+        /** FillerRequest */
+        FillerRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "filler";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -639,6 +671,19 @@ export interface components {
             created_at: string;
             /** Exported At */
             exported_at: string | null;
+        };
+        /** SilenceRequest */
+        SilenceRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "silence";
+            /**
+             * Min Gap Sec
+             * @default 0.5
+             */
+            min_gap_sec: number;
         };
         /** SpeechLine */
         SpeechLine: {
@@ -1349,6 +1394,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EditResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cut_suggestions_api_v1_shorts__short_id__cut_suggestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                short_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SilenceRequest"] | components["schemas"]["FillerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CutResult"];
                 };
             };
             /** @description Validation Error */
